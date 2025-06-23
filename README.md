@@ -1,203 +1,235 @@
-# HotGigs.ai - Enterprise Job Portal Platform
+# 🚀 HotGigs.ai - AI-Powered Job Portal Platform
 
-## Overview
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5+-3178C6.svg)](https://www.typescriptlang.org/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991.svg)](https://openai.com/)
 
-HotGigs.ai is a comprehensive enterprise-grade job portal with 17 advanced features including AI-powered matching, multi-role access control, document management, and complete talent lifecycle management.
+> **Revolutionary AI-powered job portal that transforms recruitment with intelligent matching, automated interviews, and comprehensive career guidance.**
 
-## Features
+## 🌟 Key Features
 
-### 🤖 AI-Powered Core Features (10 Features)
-1. **Generative AI Job Matching Engine** - Semantic search with vector embeddings and ML-powered candidate scoring
-2. **Generative AI Interface (ChatGPT-like)** - Natural language querying for all platform data
-3. **Intelligent Resume Analysis and Optimization** - 10-dimension scoring system with detailed feedback
-4. **Advanced AI Interview Agent** - Role-specific questioning with dynamic adaptation
-5. **AI-Powered Document Intelligence** - OCR with fraud detection and authenticity verification
-6. **AI Job Description Generator** - Automated generation with industry-specific optimization
-7. **AI Career Path Advisor** - Personalized career development recommendations
-8. **AI Rejection Feedback Learning System** - Pattern recognition from rejection data
-9. **Predictive Analytics and Market Intelligence** - ML-powered hiring outcome prediction
-10. **Intelligent Workflow Automation** - AI-driven process automation and optimization
+### 🤖 **AI-Powered Core Features**
+- **Intelligent Job Matching**: AI-driven compatibility scoring between candidates and jobs
+- **Resume Analysis**: Comprehensive skill extraction, domain expertise identification, and optimization suggestions
+- **AI Interview Agent**: Conducts full interviews like a real person with personalized questions and assessments
+- **Career Advisor**: Provides strategic career guidance and development recommendations
+- **Job Description Generator**: Creates compelling, optimized job postings using AI
 
-### 📊 Data Management & Export Features (3 Features)
-1. **Comprehensive Application Tracking Dashboard** - Real-time pipeline visualization with analytics
-2. **Candidate Tracking & Export System** - Professional Excel and PDF report generation
-3. **Bulk Resume Upload & Management System** - Multi-source import with AI-powered parsing
+### 👥 **Multi-Role Platform**
+- **Job Seekers**: Advanced profile management, AI-powered job recommendations, interview preparation
+- **Companies**: Comprehensive hiring tools, team management, analytics dashboard
+- **Freelance Recruiters**: Commission tracking, candidate sourcing, client management
 
-### 👥 User Experience & Interface Features (2 Features)
-1. **Enhanced Task Management & Assignment System** - Comprehensive workflow management
-2. **Enhanced Resume Viewing System** - AI-generated visual resume summaries
+### 🔐 **Enterprise Security**
+- JWT-based authentication with refresh tokens
+- OAuth integration (Google, LinkedIn, GitHub)
+- Role-based access control (RBAC)
+- Row-level security policies
+- Comprehensive audit trails
 
-### 🔐 Privacy & Security Features (2 Features)
-1. **Social Authentication System** - Complete OAuth integration (Google, LinkedIn, GitHub)
-2. **Client Contact Privacy & Job Visibility Controls** - Granular privacy controls
+### 📊 **Advanced Analytics**
+- Real-time hiring metrics and insights
+- Candidate pipeline analytics
+- AI performance tracking
+- Market intelligence and trends
 
-## Technology Stack
+## 🏗️ Architecture
 
-### Frontend
-- **React 18** with TypeScript for type safety
-- **Redux Toolkit** for state management
-- **Tailwind CSS** for responsive design
-- **Socket.io** for real-time features
-- **React Router** with role-based protection
-
-### Backend
-- **Flask** with Python 3.11
-- **Supabase PostgreSQL** with 25+ tables
-- **Celery with Redis** for background jobs
-- **OpenAI GPT-4o-mini** for AI features
-- **JWT authentication** with role-based access
-
-### Infrastructure
-- **Manus Platform** deployment
-- **Cloud Storage Integration**
-- **Email Services** with branded templates
-- **Document Processing** with OCR
-
-## User Roles
-
-### 1. Candidates
-- Job search and application tracking
-- AI-powered profile optimization
-- Interview preparation tools
-- Career path recommendations
-
-### 2. Companies
-- Role-based team management (Admin, Recruiter, Account Manager)
-- Candidate database access
-- Job posting and applicant tracking
-- Onboarding workflows and contract management
-
-### 3. Freelance Recruiters
-- Access to job postings
-- Candidate referral system
-- Commission tracking
-- Performance analytics
-
-## Project Structure
-
+### **Backend (Flask + Python)**
 ```
-hotgigs-ai/
-├── backend/                 # Flask API server
-│   ├── app/
-│   │   ├── models/         # Database models
-│   │   ├── routes/         # API endpoints
-│   │   ├── services/       # Business logic
-│   │   └── utils/          # Utility functions
-│   ├── migrations/         # Database migrations
-│   ├── tests/             # Backend tests
-│   └── requirements.txt   # Python dependencies
-├── frontend/              # React application
-│   └── hotgigs-frontend/
-│       ├── src/
-│       │   ├── components/ # React components
-│       │   ├── store/     # Redux store
-│       │   ├── services/  # API services
-│       │   └── types/     # TypeScript types
-│       └── package.json   # Node dependencies
-├── docs/                  # Documentation
-├── scripts/              # Deployment scripts
-├── config/               # Configuration files
-└── .env                  # Environment variables
+backend/
+├── hotgigs-api/
+│   ├── src/
+│   │   ├── models/          # Database models and services
+│   │   ├── routes/          # API endpoints
+│   │   ├── services/        # Business logic and AI services
+│   │   └── utils/           # Utility functions
+│   ├── migrations/          # Database migrations
+│   └── requirements.txt     # Python dependencies
 ```
 
-## Getting Started
+### **Frontend (React + TypeScript)**
+```
+frontend/
+├── hotgigs-frontend/
+│   ├── src/
+│   │   ├── components/      # Reusable UI components
+│   │   ├── pages/           # Application pages
+│   │   ├── contexts/        # React contexts for state management
+│   │   └── hooks/           # Custom React hooks
+│   ├── public/              # Static assets
+│   └── package.json         # Node.js dependencies
+```
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.11+
-- Node.js 20+
-- PostgreSQL (via Supabase)
-- Redis (for background jobs)
+- **Python 3.11+**
+- **Node.js 18+**
+- **PostgreSQL** (via Supabase)
+- **OpenAI API Key**
 
-### Environment Setup
-1. Copy `.env.example` to `.env` and configure variables
-2. Set up Supabase project and database
-3. Configure OAuth applications (Google, LinkedIn, GitHub)
-4. Obtain OpenAI API key
-
-### Backend Setup
+### 1. Clone Repository
 ```bash
-cd backend
+git clone https://github.com/businessintelli/hitgigs.git
+cd hitgigs
+```
+
+### 2. Environment Setup
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Add your API keys to .env
+OPENAI_API_KEY=your_openai_api_key
+SUPABASE_URL=your_supabase_url
+SUPABASE_ANON_KEY=your_supabase_anon_key
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
+
+### 3. Backend Setup
+```bash
+cd backend/hotgigs-api
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
-flask db upgrade
-flask run
+cd src && python main.py
 ```
 
-### Frontend Setup
+### 4. Frontend Setup
 ```bash
 cd frontend/hotgigs-frontend
-pnpm install
-pnpm run dev
+npm install
+npm run dev
 ```
 
-## API Documentation
-
-The API follows RESTful conventions with the following main endpoints:
-
-- `/api/auth/*` - Authentication and user management
-- `/api/jobs/*` - Job posting and management
-- `/api/applications/*` - Application tracking
-- `/api/candidates/*` - Candidate management
-- `/api/ai/*` - AI-powered features
-- `/api/documents/*` - Document processing
-
-## Development Guidelines
-
-### Code Style
-- Backend: Follow PEP 8 for Python code
-- Frontend: Use ESLint and Prettier for TypeScript/React
-- Use meaningful variable and function names
-- Write comprehensive tests for all features
-
-### Git Workflow
-- Use feature branches for development
-- Write descriptive commit messages
-- Create pull requests for code review
-- Maintain clean commit history
-
-## Testing
-
-### Backend Testing
+### 5. Database Setup
 ```bash
-cd backend
-pytest tests/
+# Run database migrations
+cd backend/hotgigs-api
+python -m flask db upgrade
 ```
 
-### Frontend Testing
-```bash
-cd frontend/hotgigs-frontend
-pnpm test
-```
+## 🔧 API Endpoints
 
-## Deployment
+### **Authentication**
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `POST /api/auth/oauth` - OAuth authentication
+- `POST /api/auth/refresh` - Token refresh
 
-The application is designed for deployment on the Manus Platform with automatic CI/CD.
+### **AI Features**
+- `POST /api/ai/analyze-resume` - Resume analysis and scoring
+- `POST /api/ai/job-matching/candidates` - Find matching jobs
+- `POST /api/ai/job-matching/jobs` - Find matching candidates
+- `POST /api/ai/interview/create` - Create AI interview session
+- `POST /api/ai/career-advice` - Get career guidance
 
-### Production Deployment
-1. Configure production environment variables
-2. Set up production database
-3. Deploy backend API
-4. Deploy frontend application
-5. Configure domain and SSL
+### **Job Management**
+- `GET /api/jobs` - List jobs with filtering
+- `POST /api/jobs` - Create new job posting
+- `GET /api/jobs/{id}` - Get job details
+- `POST /api/applications` - Submit job application
 
-## Contributing
+## 🤖 AI Capabilities
 
+### **Resume Analysis Engine**
+- **Skill Extraction**: Identifies technical and soft skills
+- **Domain Expertise**: Recognizes industry knowledge (healthcare, finance, e-commerce, etc.)
+- **Experience Analysis**: Evaluates career progression and achievements
+- **Compatibility Scoring**: Calculates job-candidate fit percentage
+
+### **AI Interview Agent**
+- **Personalized Questions**: Generates questions based on job requirements and candidate background
+- **Real-time Assessment**: Analyzes responses and asks follow-up questions
+- **Comprehensive Scoring**: Evaluates technical skills, cultural fit, and communication
+- **Detailed Reports**: Provides actionable insights for hiring decisions
+
+### **Intelligent Matching**
+- **Multi-factor Analysis**: Skills, experience, location, culture, salary expectations
+- **Learning Algorithm**: Improves recommendations based on hiring feedback
+- **Rejection Analysis**: Uses rejection patterns to enhance future matches
+
+## 🛠️ Technology Stack
+
+### **Backend**
+- **Framework**: Flask (Python)
+- **Database**: PostgreSQL with Supabase
+- **AI/ML**: OpenAI GPT-4o-mini
+- **Authentication**: JWT with OAuth providers
+- **API Documentation**: Swagger/OpenAPI
+
+### **Frontend**
+- **Framework**: React 18 with TypeScript
+- **Styling**: Tailwind CSS + Shadcn/ui
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **Build Tool**: Vite
+
+### **Infrastructure**
+- **Database**: Supabase (PostgreSQL)
+- **AI Services**: OpenAI API
+- **Authentication**: OAuth 2.0 (Google, LinkedIn, GitHub)
+- **File Storage**: Supabase Storage
+- **Deployment**: Docker-ready
+
+## 📈 Development Roadmap
+
+### ✅ **Completed (Phases 1-6)**
+- [x] Project setup and environment configuration
+- [x] Database schema design and Supabase integration
+- [x] Backend API development with Flask
+- [x] Authentication system with OAuth
+- [x] Frontend React application
+- [x] AI-powered core features implementation
+
+### 🚧 **In Progress (Phases 7-14)**
+- [ ] Multi-role user management and access control
+- [ ] Job management and application tracking
+- [ ] Document management and processing
+- [ ] Advanced AI features integration
+- [ ] Enterprise features and analytics
+- [ ] Testing and quality assurance
+- [ ] Production deployment
+- [ ] Documentation and delivery
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
+
+### Development Process
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new features
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+## 📄 License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Support
+## 🙏 Acknowledgments
 
-For technical support or questions, please contact the development team.
+- **OpenAI** for providing the GPT-4o-mini API
+- **Supabase** for the backend infrastructure
+- **React Team** for the amazing frontend framework
+- **Tailwind CSS** for the utility-first CSS framework
+
+## 📞 Support
+
+For support, email support@hotgigs.ai or join our [Discord community](https://discord.gg/hotgigs).
 
 ---
 
-**HotGigs.ai** - Revolutionizing talent acquisition with AI-powered solutions.
+<div align="center">
+  <strong>Built with ❤️ by the HotGigs.ai Team</strong>
+  <br>
+  <a href="https://hotgigs.ai">Website</a> •
+  <a href="https://docs.hotgigs.ai">Documentation</a> •
+  <a href="https://github.com/businessintelli/hitgigs/issues">Issues</a> •
+  <a href="https://github.com/businessintelli/hitgigs/discussions">Discussions</a>
+</div>
 
