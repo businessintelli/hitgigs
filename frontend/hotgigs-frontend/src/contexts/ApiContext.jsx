@@ -14,7 +14,7 @@ export const useApi = () => {
 // Create axios instance with base configuration
 const createApiInstance = () => {
   const api = axios.create({
-    baseURL: 'http://localhost:5000/api',
+    baseURL: 'http://localhost:5001/api',
     timeout: 10000,
     headers: {
       'Content-Type': 'application/json',
@@ -48,7 +48,7 @@ const createApiInstance = () => {
           const refreshToken = localStorage.getItem('hotgigs_refresh_token')
           if (refreshToken) {
             const response = await axios.post(
-              'http://localhost:5000/api/auth/refresh',
+              'http://localhost:5001/api/auth/refresh',
               {},
               {
                 headers: { Authorization: `Bearer ${refreshToken}` }

@@ -44,7 +44,11 @@ def create_app():
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
     
     # Initialize extensions
-    CORS(app, origins=os.getenv('CORS_ORIGINS', 'http://localhost:3000').split(','))
+    CORS(app, 
+         origins=['http://localhost:3000', 'http://localhost:5174'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+         allow_headers=['Content-Type', 'Authorization'],
+         supports_credentials=True)
     jwt = JWTManager(app)
     
     # Initialize Supabase client

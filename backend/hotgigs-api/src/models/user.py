@@ -1,358 +1,355 @@
 """
-User model and service for HotGigs.ai
-Handles user management, authentication, and profiles
+User service for HotGigs.ai
+Handles user management, authentication, and profile operations
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime
 import bcrypt
-from src.models.database import DatabaseService
+import logging
+from typing import Dict, List, Optional, Any
+from datetime import datetime, timezone
+from src.models.database import get_database_service
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class UserService(DatabaseService):
-    """Service class for user operations"""
+class UserService:
+    """User service for managing user accounts and profiles"""
     
-    def create_user(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
+    def __init__(self):
+        """Initialize user service"""
+        self.db = get_database_service()
+        logger.info("User service initialized")
+    
+    def hash_password(self, password: str) -> str:
+        """Hash a password using bcrypt"""
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        return hashed.decode('utf-8')
+    
+    def verify_password(self, password: str, hashed: str) -> bool:
+        """Verify a password against its hash"""
+        return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+    
+    def create_user(self, user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a new user account"""
         try:
             # Hash password if provided
             if 'password' in user_data:
-                password_hash = bcrypt.hashpw(
-                    user_data['password'].encode('utf-8'), 
-                    bcrypt.gensalt()
-                ).decode('utf-8')
-                user_data['password_hash'] = password_hash
+                user_data['password_hash'] = self.hash_password(user_data['password'])
                 del user_data['password']
             
-            # Validate required fields
-            required_fields = ['email', 'user_type']
-            for field in required_fields:
-                if field not in user_data:
-                    raise ValueError(f"Missing required field: {field}")
+            # Set default values
+            user_data.setdefault('is_active', True)
+            user_data.setdefault('is_verified', False)
+            user_data.setdefault('created_at', datetime.now(timezone.utc).isoformat())
             
-            # Check if user already exists
-            existing_user = self.get_user_by_email(user_data['email'])
-            if existing_user:
-                raise ValueError("User with this email already exists")
+            # Create user
+            user = self.db.create_user(user_data)
+            if not user:
+                return None
             
-            # Create user record
-            user = self.create_record('users', user_data)
-            
-            # Create user profile
-            profile_data = {
-                'user_id': user['id'],
-                'notification_preferences': {
-                    'email_notifications': True,
-                    'job_alerts': True,
-                    'application_updates': True
-                },
-                'privacy_settings': {
-                    'profile_visibility': 'public',
-                    'contact_visibility': 'registered_users'
-                }
-            }
-            self.create_record('user_profiles', profile_data)
-            
-            # Create role-specific profile
-            if user_data['user_type'] == 'candidate':
+            # Create profile based on user type
+            if user['user_type'] == 'candidate':
                 self.create_candidate_profile(user['id'])
-            elif user_data['user_type'] == 'freelance_recruiter':
-                self.create_freelance_recruiter_profile(user['id'])
+            elif user['user_type'] == 'freelance_recruiter':
+                self.create_recruiter_profile(user['id'])
             
-            # Remove sensitive data from response
-            if 'password_hash' in user:
-                del user['password_hash']
-            
+            logger.info(f"Created user: {user['email']} ({user['user_type']})")
             return user
             
         except Exception as e:
-            raise Exception(f"Failed to create user: {str(e)}")
-    
-    def create_candidate_profile(self, user_id: str) -> Dict[str, Any]:
-        """Create a candidate profile for a user"""
-        profile_data = {
-            'user_id': user_id,
-            'availability': 'not_looking',
-            'desired_salary_currency': 'USD',
-            'skills': [],
-            'languages': [],
-            'ai_score': {},
-            'visibility_settings': {
-                'profile_public': True,
-                'salary_visible': False,
-                'contact_visible': True
-            }
-        }
-        return self.create_record('candidate_profiles', profile_data)
-    
-    def create_freelance_recruiter_profile(self, user_id: str) -> Dict[str, Any]:
-        """Create a freelance recruiter profile for a user"""
-        profile_data = {
-            'user_id': user_id,
-            'specializations': [],
-            'commission_rate': 10.00,
-            'total_placements': 0,
-            'total_earnings': 0.00,
-            'payment_info': {},
-            'is_verified': False
-        }
-        return self.create_record('freelance_recruiters', profile_data)
+            logger.error(f"Error creating user: {str(e)}")
+            raise
     
     def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
         """Authenticate user with email and password"""
         try:
-            user = self.get_user_by_email(email)
+            user = self.db.get_user_by_email(email)
             if not user:
+                return None
+            
+            if not user.get('is_active', False):
                 return None
             
             if not user.get('password_hash'):
                 return None
             
-            # Verify password
-            if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
-                # Update last login
-                self.update_record('users', user['id'], {
-                    'last_login_at': datetime.utcnow().isoformat()
-                })
-                
-                # Remove sensitive data
-                del user['password_hash']
-                return user
+            if not self.verify_password(password, user['password_hash']):
+                return None
             
-            return None
+            # Update last login
+            self.db.update_record('users', user['id'], {
+                'last_login_at': datetime.now(timezone.utc).isoformat()
+            })
             
-        except Exception as e:
-            raise Exception(f"Authentication failed: {str(e)}")
-    
-    def get_user_profile(self, user_id: str) -> Dict[str, Any]:
-        """Get complete user profile with all related data"""
-        try:
-            # Get user basic info
-            user = self.get_record_by_id('users', user_id)
-            if not user:
-                raise ValueError("User not found")
-            
-            # Remove sensitive data
-            if 'password_hash' in user:
-                del user['password_hash']
-            
-            # Get user profile
-            profile_result = self.supabase.table('user_profiles').select("*").eq("user_id", user_id).execute()
-            user['profile'] = profile_result.data[0] if profile_result.data else {}
-            
-            # Get role-specific profile
-            if user['user_type'] == 'candidate':
-                candidate_result = self.supabase.table('candidate_profiles').select("*").eq("user_id", user_id).execute()
-                user['candidate_profile'] = candidate_result.data[0] if candidate_result.data else {}
-                
-                # Get candidate experiences
-                experiences_result = self.supabase.table('candidate_experiences').select("*").eq("candidate_id", user['candidate_profile'].get('id')).order('start_date', desc=True).execute()
-                user['experiences'] = experiences_result.data or []
-                
-                # Get candidate education
-                education_result = self.supabase.table('candidate_education').select("*").eq("candidate_id", user['candidate_profile'].get('id')).order('start_date', desc=True).execute()
-                user['education'] = education_result.data or []
-                
-            elif user['user_type'] == 'freelance_recruiter':
-                recruiter_result = self.supabase.table('freelance_recruiters').select("*").eq("user_id", user_id).execute()
-                user['recruiter_profile'] = recruiter_result.data[0] if recruiter_result.data else {}
-            
-            elif user['user_type'] == 'company':
-                # Get company memberships
-                user['companies'] = self.get_user_companies(user_id)
-            
+            logger.info(f"User authenticated: {email}")
             return user
             
         except Exception as e:
-            raise Exception(f"Failed to get user profile: {str(e)}")
+            logger.error(f"Error authenticating user: {str(e)}")
+            raise
     
-    def update_user_profile(self, user_id: str, profile_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update user profile information"""
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get user by email"""
+        return self.db.get_user_by_email(email)
+    
+    def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get complete user profile"""
+        return self.db.get_user_profile(user_id)
+    
+    def update_user_profile(self, user_id: str, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update user profile"""
         try:
-            # Separate user data from profile data
-            user_fields = ['first_name', 'last_name', 'phone', 'profile_image_url']
-            user_data = {k: v for k, v in profile_data.items() if k in user_fields}
-            profile_fields = {k: v for k, v in profile_data.items() if k not in user_fields}
+            # Remove sensitive fields
+            profile_data.pop('password', None)
+            profile_data.pop('password_hash', None)
+            profile_data.pop('id', None)
+            profile_data.pop('created_at', None)
             
-            # Update user record
-            if user_data:
-                self.update_record('users', user_id, user_data)
-            
-            # Update user profile
-            if profile_fields:
-                # Check if profile exists
-                existing_profile = self.supabase.table('user_profiles').select("id").eq("user_id", user_id).execute()
-                
-                if existing_profile.data:
-                    self.update_record('user_profiles', existing_profile.data[0]['id'], profile_fields)
-                else:
-                    profile_fields['user_id'] = user_id
-                    self.create_record('user_profiles', profile_fields)
-            
-            return self.get_user_profile(user_id)
+            return self.db.update_record('users', user_id, profile_data)
             
         except Exception as e:
-            raise Exception(f"Failed to update user profile: {str(e)}")
+            logger.error(f"Error updating user profile: {str(e)}")
+            raise
     
-    def update_candidate_profile(self, user_id: str, candidate_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update candidate-specific profile information"""
+    def create_candidate_profile(self, user_id: str, profile_data: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Create candidate profile"""
+        try:
+            data = profile_data or {}
+            data['user_id'] = user_id
+            data.setdefault('created_at', datetime.now(timezone.utc).isoformat())
+            
+            return self.db.create_record('candidate_profiles', data)
+            
+        except Exception as e:
+            logger.error(f"Error creating candidate profile: {str(e)}")
+            raise
+    
+    def update_candidate_profile(self, user_id: str, profile_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update candidate profile"""
         try:
             # Get candidate profile
-            candidate_result = self.supabase.table('candidate_profiles').select("id").eq("user_id", user_id).execute()
+            profiles = self.db.get_records('candidate_profiles', {'user_id': user_id})
+            if not profiles:
+                return self.create_candidate_profile(user_id, profile_data)
             
-            if not candidate_result.data:
-                raise ValueError("Candidate profile not found")
-            
-            candidate_id = candidate_result.data[0]['id']
-            
-            # Update candidate profile
-            return self.update_record('candidate_profiles', candidate_id, candidate_data)
+            profile_id = profiles[0]['id']
+            return self.db.update_record('candidate_profiles', profile_id, profile_data)
             
         except Exception as e:
-            raise Exception(f"Failed to update candidate profile: {str(e)}")
+            logger.error(f"Error updating candidate profile: {str(e)}")
+            raise
     
-    def add_candidate_experience(self, user_id: str, experience_data: Dict[str, Any]) -> Dict[str, Any]:
+    def add_candidate_experience(self, user_id: str, experience_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Add work experience to candidate profile"""
         try:
             # Get candidate profile
-            candidate_result = self.supabase.table('candidate_profiles').select("id").eq("user_id", user_id).execute()
+            profiles = self.db.get_records('candidate_profiles', {'user_id': user_id})
+            if not profiles:
+                return None
             
-            if not candidate_result.data:
-                raise ValueError("Candidate profile not found")
+            experience_data['candidate_id'] = profiles[0]['id']
+            experience_data.setdefault('created_at', datetime.now(timezone.utc).isoformat())
             
-            experience_data['candidate_id'] = candidate_result.data[0]['id']
-            
-            # Validate required fields
-            required_fields = ['company_name', 'job_title', 'start_date']
-            for field in required_fields:
-                if field not in experience_data:
-                    raise ValueError(f"Missing required field: {field}")
-            
-            return self.create_record('candidate_experiences', experience_data)
+            return self.db.create_record('work_experiences', experience_data)
             
         except Exception as e:
-            raise Exception(f"Failed to add experience: {str(e)}")
+            logger.error(f"Error adding candidate experience: {str(e)}")
+            raise
     
-    def add_candidate_education(self, user_id: str, education_data: Dict[str, Any]) -> Dict[str, Any]:
+    def add_candidate_education(self, user_id: str, education_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Add education to candidate profile"""
         try:
             # Get candidate profile
-            candidate_result = self.supabase.table('candidate_profiles').select("id").eq("user_id", user_id).execute()
+            profiles = self.db.get_records('candidate_profiles', {'user_id': user_id})
+            if not profiles:
+                return None
             
-            if not candidate_result.data:
-                raise ValueError("Candidate profile not found")
+            education_data['candidate_id'] = profiles[0]['id']
+            education_data.setdefault('created_at', datetime.now(timezone.utc).isoformat())
             
-            education_data['candidate_id'] = candidate_result.data[0]['id']
-            
-            # Validate required fields
-            required_fields = ['institution_name']
-            for field in required_fields:
-                if field not in education_data:
-                    raise ValueError(f"Missing required field: {field}")
-            
-            return self.create_record('candidate_education', education_data)
+            return self.db.create_record('education', education_data)
             
         except Exception as e:
-            raise Exception(f"Failed to add education: {str(e)}")
+            logger.error(f"Error adding candidate education: {str(e)}")
+            raise
     
-    def create_oauth_account(self, user_id: str, oauth_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Create OAuth account link for user"""
+    def create_recruiter_profile(self, user_id: str, profile_data: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """Create freelance recruiter profile"""
         try:
-            oauth_data['user_id'] = user_id
+            data = profile_data or {}
+            data['user_id'] = user_id
+            data.setdefault('total_placements', 0)
+            data.setdefault('is_verified', False)
+            data.setdefault('created_at', datetime.now(timezone.utc).isoformat())
             
-            # Check if OAuth account already exists
-            existing_oauth = self.supabase.table('oauth_accounts').select("id").eq("user_id", user_id).eq("provider", oauth_data['provider']).execute()
+            return self.db.create_record('freelance_recruiter_profiles', data)
             
-            if existing_oauth.data:
-                # Update existing OAuth account
-                return self.update_record('oauth_accounts', existing_oauth.data[0]['id'], oauth_data)
-            else:
-                # Create new OAuth account
-                return self.create_record('oauth_accounts', oauth_data)
-                
         except Exception as e:
-            raise Exception(f"Failed to create OAuth account: {str(e)}")
+            logger.error(f"Error creating recruiter profile: {str(e)}")
+            raise
     
     def get_user_by_oauth(self, provider: str, provider_user_id: str) -> Optional[Dict[str, Any]]:
         """Get user by OAuth provider information"""
         try:
-            oauth_result = self.supabase.table('oauth_accounts').select("""
-                *,
-                users:user_id (*)
-            """).eq("provider", provider).eq("provider_user_id", provider_user_id).execute()
+            oauth_records = self.db.get_records('oauth_providers', {
+                'provider': provider,
+                'provider_user_id': provider_user_id
+            })
             
-            if oauth_result.data:
-                user = oauth_result.data[0]['users']
-                if 'password_hash' in user:
-                    del user['password_hash']
-                return user
+            if not oauth_records:
+                return None
             
-            return None
+            user_id = oauth_records[0]['user_id']
+            return self.db.get_record_by_id('users', user_id)
             
         except Exception as e:
-            raise Exception(f"Failed to get user by OAuth: {str(e)}")
+            logger.error(f"Error getting user by OAuth: {str(e)}")
+            raise
     
-    def search_users(self, search_term: str, user_type: Optional[str] = None, limit: int = 20) -> List[Dict[str, Any]]:
+    def create_oauth_user(self, provider: str, provider_data: Dict[str, Any], user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create user from OAuth provider data"""
+        try:
+            # Create user
+            user = self.create_user(user_data)
+            if not user:
+                return None
+            
+            # Create OAuth provider record
+            oauth_data = {
+                'user_id': user['id'],
+                'provider': provider,
+                'provider_user_id': provider_data['id'],
+                'access_token': provider_data.get('access_token'),
+                'refresh_token': provider_data.get('refresh_token'),
+                'created_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+            self.db.create_record('oauth_providers', oauth_data)
+            
+            logger.info(f"Created OAuth user: {user['email']} via {provider}")
+            return user
+            
+        except Exception as e:
+            logger.error(f"Error creating OAuth user: {str(e)}")
+            raise
+    
+    def search_users(self, search_term: str, user_type: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Search users by name or email"""
         try:
-            query = self.supabase.table('users').select("""
-                id,
-                email,
-                first_name,
-                last_name,
-                user_type,
-                profile_image_url,
-                is_active
-            """)
-            
-            # Apply search filter
-            query = query.or_(f"first_name.ilike.%{search_term}%,last_name.ilike.%{search_term}%,email.ilike.%{search_term}%")
-            
-            # Apply user type filter
+            filters = {}
             if user_type:
-                query = query.eq("user_type", user_type)
+                filters['user_type'] = user_type
             
-            # Apply limit
-            query = query.limit(limit)
+            # Search in first_name, last_name, and email
+            users = []
             
-            result = query.execute()
-            return result.data or []
+            # Search by first name
+            first_name_results = self.db.search_records('users', 'first_name', search_term, filters, limit)
+            users.extend(first_name_results)
+            
+            # Search by last name
+            last_name_results = self.db.search_records('users', 'last_name', search_term, filters, limit)
+            users.extend(last_name_results)
+            
+            # Search by email
+            email_results = self.db.search_records('users', 'email', search_term, filters, limit)
+            users.extend(email_results)
+            
+            # Remove duplicates
+            seen_ids = set()
+            unique_users = []
+            for user in users:
+                if user['id'] not in seen_ids:
+                    seen_ids.add(user['id'])
+                    unique_users.append(user)
+            
+            return unique_users[:limit] if limit else unique_users
             
         except Exception as e:
-            raise Exception(f"Failed to search users: {str(e)}")
+            logger.error(f"Error searching users: {str(e)}")
+            raise
+    
+    def change_password(self, user_id: str, old_password: str, new_password: str) -> bool:
+        """Change user password"""
+        try:
+            user = self.db.get_record_by_id('users', user_id)
+            if not user:
+                return False
+            
+            if not user.get('password_hash'):
+                return False
+            
+            if not self.verify_password(old_password, user['password_hash']):
+                return False
+            
+            new_hash = self.hash_password(new_password)
+            result = self.db.update_record('users', user_id, {'password_hash': new_hash})
+            
+            logger.info(f"Password changed for user: {user['email']}")
+            return result is not None
+            
+        except Exception as e:
+            logger.error(f"Error changing password: {str(e)}")
+            raise
     
     def deactivate_user(self, user_id: str) -> bool:
         """Deactivate user account"""
         try:
-            self.update_record('users', user_id, {'is_active': False})
-            return True
-        except Exception as e:
-            raise Exception(f"Failed to deactivate user: {str(e)}")
-    
-    def verify_user_email(self, user_id: str) -> bool:
-        """Mark user email as verified"""
-        try:
-            self.update_record('users', user_id, {
-                'is_verified': True,
-                'email_verified_at': datetime.utcnow().isoformat()
-            })
-            return True
-        except Exception as e:
-            raise Exception(f"Failed to verify user email: {str(e)}")
-    
-    def change_user_password(self, user_id: str, new_password: str) -> bool:
-        """Change user password"""
-        try:
-            password_hash = bcrypt.hashpw(
-                new_password.encode('utf-8'), 
-                bcrypt.gensalt()
-            ).decode('utf-8')
+            result = self.db.update_record('users', user_id, {'is_active': False})
+            logger.info(f"User deactivated: {user_id}")
+            return result is not None
             
-            self.update_record('users', user_id, {'password_hash': password_hash})
-            return True
         except Exception as e:
-            raise Exception(f"Failed to change password: {str(e)}")
-
+            logger.error(f"Error deactivating user: {str(e)}")
+            raise
+    
+    def get_user_applications(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all job applications for a user"""
+        return self.db.get_user_applications(user_id)
+    
+    def get_user_stats(self, user_id: str) -> Dict[str, Any]:
+        """Get user statistics"""
+        try:
+            user = self.db.get_record_by_id('users', user_id)
+            if not user:
+                return {}
+            
+            stats = {
+                'user_type': user['user_type'],
+                'member_since': user['created_at'],
+                'last_login': user.get('last_login_at'),
+                'is_verified': user.get('is_verified', False)
+            }
+            
+            if user['user_type'] == 'candidate':
+                applications = self.get_user_applications(user_id)
+                stats.update({
+                    'total_applications': len(applications),
+                    'pending_applications': len([a for a in applications if a['status'] == 'pending']),
+                    'interview_count': len([a for a in applications if a['status'] == 'interviewing'])
+                })
+            
+            elif user['user_type'] == 'company':
+                # Get company jobs and applications
+                memberships = self.db.get_records('company_members', {'user_id': user_id})
+                if memberships:
+                    company_id = memberships[0]['company_id']
+                    jobs = self.db.get_company_jobs(company_id)
+                    total_applications = sum(job.get('application_count', 0) for job in jobs)
+                    
+                    stats.update({
+                        'total_jobs_posted': len(jobs),
+                        'active_jobs': len([j for j in jobs if j['status'] == 'active']),
+                        'total_applications_received': total_applications
+                    })
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting user stats: {str(e)}")
+            return {}
 
 # Create global instance function
 def get_user_service():
