@@ -50,6 +50,7 @@ class JobUpdateSchema(Schema):
     is_featured = fields.Bool()
 
 @jobs_bp.route('/', methods=['GET'])
+@jobs_bp.route('', methods=['GET'])
 def get_public_jobs():
     """Get public job listings (no authentication required)"""
     try:
@@ -222,6 +223,7 @@ def get_job_details(job_id):
         return jsonify({'error': 'Failed to get job details', 'details': str(e)}), 500
 
 @jobs_bp.route('/', methods=['POST'])
+@jobs_bp.route('', methods=['POST'])
 @jwt_required()
 def create_job():
     """Create a new job posting"""
