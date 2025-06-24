@@ -1,129 +1,124 @@
 import os
 import sys
-from datetime import timedelta
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
-# Load environment variables
-load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env'))
-
-# DON'T CHANGE THIS !!!
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Add the src directory to the Python path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager
 
+# Try to import optional dependencies
+try:
+    from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+    JWT_AVAILABLE = True
+except ImportError:
+    print("Warning: flask_jwt_extended not available. JWT authentication disabled.")
+    JWT_AVAILABLE = False
+
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+    LIMITER_AVAILABLE = True
+except ImportError:
+    print("Warning: flask_limiter not available. Rate limiting disabled.")
+    LIMITER_AVAILABLE = False
+
+# Try to import Supabase
 try:
     from supabase import create_client, Client
     SUPABASE_AVAILABLE = True
 except ImportError:
+    print("Warning: Supabase not available. Database features disabled.")
     SUPABASE_AVAILABLE = False
 
-# Import blueprints
+# Try to import route modules
+ROUTES_AVAILABLE = False
 try:
-    from src.routes.auth import auth_bp
-    from src.routes.users import users_bp
-    from src.routes.companies import companies_bp
-    from src.routes.jobs import jobs_bp
-    from src.routes.applications import applications_bp
-    from src.routes.candidates import candidates_bp
-    from src.routes.ai import ai_bp
-    from src.routes.documents import documents_bp
-    from src.routes.analytics import analytics_bp
-    from src.routes.notifications import notifications_bp
-    from src.routes.workflows import workflows_bp
-    from src.routes.bulk import bulk_bp
+    from routes import auth, users, companies, jobs, applications
+    from routes import candidates, ai, documents, analytics, notifications
+    from routes import workflows, bulk
     ROUTES_AVAILABLE = True
+    print("✅ All route modules loaded successfully")
 except ImportError as e:
     print(f"Warning: Some routes not available: {e}")
-    ROUTES_AVAILABLE = False
 
 def create_app():
     app = Flask(__name__)
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
-    app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)
     
-    # Supabase configuration
-    app.config['SUPABASE_URL'] = os.getenv('SUPABASE_URL')
-    app.config['SUPABASE_ANON_KEY'] = os.getenv('SUPABASE_ANON_KEY')
-    app.config['SUPABASE_SERVICE_ROLE_KEY'] = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+    # CORS configuration - Allow all origins for development
+    CORS(app, 
+         origins=['*'],
+         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+         allow_headers=['Content-Type', 'Authorization', 'Access-Control-Allow-Credentials'],
+         supports_credentials=True)
     
-    # OpenAI configuration
-    app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
+    # Initialize JWT if available
+    if JWT_AVAILABLE:
+        jwt = JWTManager(app)
+        
+        @jwt.expired_token_loader
+        def expired_token_callback(jwt_header, jwt_payload):
+            return jsonify({'error': 'Token has expired'}), 401
+        
+        @jwt.invalid_token_loader
+        def invalid_token_callback(error):
+            return jsonify({'error': 'Invalid token'}), 401
+        
+        @jwt.unauthorized_loader
+        def missing_token_callback(error):
+            return jsonify({'error': 'Authorization token is required'}), 401
     
-    # Simple CORS configuration to avoid multiple headers
-    CORS(app, origins="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
-    
-    jwt = JWTManager(app)
-    
-    # Initialize Supabase client if available
-    if SUPABASE_AVAILABLE and app.config['SUPABASE_URL'] and app.config['SUPABASE_SERVICE_ROLE_KEY']:
+    # Initialize rate limiter if available
+    if LIMITER_AVAILABLE:
         try:
-            supabase: Client = create_client(
-                app.config['SUPABASE_URL'], 
-                app.config['SUPABASE_SERVICE_ROLE_KEY']
+            limiter = Limiter(
+                key_func=get_remote_address,
+                app=app,
+                default_limits=["200 per day", "50 per hour"]
             )
-            app.supabase = supabase
         except Exception as e:
-            print(f"Warning: Supabase initialization failed: {e}")
-    else:
-        print("Warning: Supabase not available or not configured.")
+            print(f"Warning: Failed to initialize rate limiter: {e}")
+            LIMITER_AVAILABLE = False
     
-    # Register blueprints if available
+    # Initialize Supabase if available
+    if SUPABASE_AVAILABLE:
+        supabase_url = os.getenv('SUPABASE_URL')
+        supabase_key = os.getenv('SUPABASE_KEY')
+        
+        if supabase_url and supabase_key:
+            try:
+                supabase: Client = create_client(supabase_url, supabase_key)
+                app.supabase = supabase
+                print("✅ Supabase client initialized successfully")
+            except Exception as e:
+                print(f"Warning: Failed to initialize Supabase: {e}")
+        else:
+            print("Warning: Supabase credentials not found in environment variables")
+    
+    # Register blueprints if routes are available
     if ROUTES_AVAILABLE:
         try:
-            app.register_blueprint(auth_bp, url_prefix='/api/auth')
-            app.register_blueprint(users_bp, url_prefix='/api/users')
-            app.register_blueprint(companies_bp, url_prefix='/api/companies')
-            app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
-            app.register_blueprint(applications_bp, url_prefix='/api/applications')
-            app.register_blueprint(candidates_bp, url_prefix='/api/candidates')
-            app.register_blueprint(ai_bp, url_prefix='/api/ai')
-            app.register_blueprint(documents_bp, url_prefix='/api/documents')
-            app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
-            app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
-            app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
-            app.register_blueprint(bulk_bp, url_prefix='/api/bulk')
+            app.register_blueprint(auth.bp)
+            app.register_blueprint(users.bp)
+            app.register_blueprint(companies.bp)
+            app.register_blueprint(jobs.bp)
+            app.register_blueprint(applications.bp)
+            app.register_blueprint(candidates.bp)
+            app.register_blueprint(ai.bp)
+            app.register_blueprint(documents.bp)
+            app.register_blueprint(analytics.bp)
+            app.register_blueprint(notifications.bp)
+            app.register_blueprint(workflows.bp)
+            app.register_blueprint(bulk.bp)
+            print("✅ All API routes registered successfully")
         except Exception as e:
-            print(f"Warning: Some blueprints failed to register: {e}")
-    
-    # Error handlers
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({'error': 'Not found'}), 404
-    
-    @app.errorhandler(500)
-    def internal_error(error):
-        return jsonify({'error': 'Internal server error'}), 500
-    
-    @app.errorhandler(400)
-    def bad_request(error):
-        return jsonify({'error': 'Bad request'}), 400
-    
-    @app.errorhandler(401)
-    def unauthorized(error):
-        return jsonify({'error': 'Unauthorized'}), 401
-    
-    @app.errorhandler(403)
-    def forbidden(error):
-        return jsonify({'error': 'Forbidden'}), 403
-    
-    # JWT error handlers
-    @jwt.expired_token_loader
-    def expired_token_callback(jwt_header, jwt_payload):
-        return jsonify({'error': 'Token has expired'}), 401
-    
-    @jwt.invalid_token_loader
-    def invalid_token_callback(error):
-        return jsonify({'error': 'Invalid token'}), 401
-    
-    @jwt.unauthorized_loader
-    def missing_token_callback(error):
-        return jsonify({'error': 'Authorization token is required'}), 401
+            print(f"Warning: Failed to register some routes: {e}")
     
     # Health check endpoint
     @app.route('/api/health')
@@ -132,10 +127,13 @@ def create_app():
             'status': 'healthy',
             'service': 'HotGigs.ai API',
             'version': '1.0.0',
-            'environment': 'production',
+            'environment': os.getenv('ENVIRONMENT', 'development'),
             'cors': 'enabled',
+            'jwt': 'available' if JWT_AVAILABLE else 'disabled',
+            'rate_limiting': 'available' if LIMITER_AVAILABLE else 'disabled',
             'database': 'connected' if hasattr(app, 'supabase') else 'not configured',
-            'routes': 'loaded' if ROUTES_AVAILABLE else 'basic only'
+            'routes': 'loaded' if ROUTES_AVAILABLE else 'basic only',
+            'timestamp': datetime.utcnow().isoformat()
         })
     
     # API info endpoint
@@ -166,8 +164,14 @@ def create_app():
             'name': 'HotGigs.ai API',
             'version': '1.0.0',
             'description': 'Enterprise-grade job portal with AI-powered features',
-            'environment': 'production',
+            'environment': os.getenv('ENVIRONMENT', 'development'),
             'cors_enabled': True,
+            'features': {
+                'jwt_auth': JWT_AVAILABLE,
+                'rate_limiting': LIMITER_AVAILABLE,
+                'database': SUPABASE_AVAILABLE,
+                'full_routes': ROUTES_AVAILABLE
+            },
             'endpoints': endpoints
         })
     
@@ -180,7 +184,8 @@ def create_app():
             'status': 'healthy',
             'api_docs': '/api',
             'health_check': '/api/health',
-            'cors_enabled': True
+            'cors_enabled': True,
+            'timestamp': datetime.utcnow().isoformat()
         })
     
     return app
@@ -189,10 +194,19 @@ def create_app():
 app = create_app()
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
-    print(f"🚀 Starting HotGigs.ai Backend API on 0.0.0.0:{port}")
-    print(f"🌐 Simple CORS enabled for production deployment")
+    # Default to port 8000 for development, allow override with PORT env var
+    port = int(os.getenv('PORT', 8000))
+    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    environment = os.getenv('ENVIRONMENT', 'development')
+    
+    print(f"🚀 Starting HotGigs.ai Backend API")
+    print(f"🌐 Host: 0.0.0.0")
+    print(f"🔌 Port: {port}")
     print(f"🔧 Debug mode: {debug}")
+    print(f"🏷️  Environment: {environment}")
+    print(f"🌍 CORS: Enabled for all origins")
+    print(f"📊 Health check: http://localhost:{port}/api/health")
+    print(f"📋 API info: http://localhost:{port}/api")
+    
     app.run(host='0.0.0.0', port=port, debug=debug)
 
