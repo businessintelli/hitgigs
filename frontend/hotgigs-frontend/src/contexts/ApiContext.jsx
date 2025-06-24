@@ -11,23 +11,36 @@ export const useApi = () => {
   return context
 }
 
+// Get API base URL from environment variable or fallback to final deployed backend
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://j6h5i7c16kvm.manus.space/api'
+
+console.log('API Base URL:', API_BASE_URL) // Debug log
+
 // Create axios instance with base configuration
 const createApiInstance = () => {
   const api = axios.create({
-    baseURL: 'http://localhost:5001/api',
-    timeout: 10000,
+    baseURL: API_BASE_URL,
+    timeout: 30000, // Increased timeout
     headers: {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
     },
+    withCredentials: false, // Set to false for CORS
   })
 
   // Request interceptor
   api.interceptors.request.use(
     (config) => {
+      console.log('Making API request to:', config.url) // Debug log
       // Add any request modifications here
+      const token = localStorage.getItem('hotgigs_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
       return config
     },
     (error) => {
+      console.error('Request interceptor error:', error)
       return Promise.reject(error)
     }
   )
@@ -35,9 +48,11 @@ const createApiInstance = () => {
   // Response interceptor
   api.interceptors.response.use(
     (response) => {
+      console.log('API response received:', response.status) // Debug log
       return response
     },
     async (error) => {
+      console.error('API response error:', error) // Debug log
       const originalRequest = error.config
 
       // Handle 401 errors (token expired)
@@ -48,7 +63,7 @@ const createApiInstance = () => {
           const refreshToken = localStorage.getItem('hotgigs_refresh_token')
           if (refreshToken) {
             const response = await axios.post(
-              'http://localhost:5001/api/auth/refresh',
+              `${API_BASE_URL}/auth/refresh`,
               {},
               {
                 headers: { Authorization: `Bearer ${refreshToken}` }
@@ -63,6 +78,7 @@ const createApiInstance = () => {
             return api(originalRequest)
           }
         } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError)
           // Refresh failed, redirect to login
           localStorage.removeItem('hotgigs_token')
           localStorage.removeItem('hotgigs_refresh_token')
@@ -130,6 +146,22 @@ export const ApiProvider = ({ children }) => {
     markAsRead: (notificationId) => api.put(`/notifications/${notificationId}/read`),
   }
 
+  // Documents API calls
+  const documentsApi = {
+    uploadDocument: (formData) => api.post('/documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    getDocuments: () => api.get('/documents'),
+    deleteDocument: (documentId) => api.delete(`/documents/${documentId}`),
+  }
+
+  // Analytics API calls
+  const analyticsApi = {
+    getDashboardMetrics: () => api.get('/analytics/dashboard'),
+    getJobMetrics: (jobId) => api.get(`/analytics/jobs/${jobId}`),
+    getCompanyMetrics: (companyId) => api.get(`/analytics/companies/${companyId}`),
+  }
+
   const value = {
     api,
     jobsApi,
@@ -139,6 +171,8 @@ export const ApiProvider = ({ children }) => {
     candidatesApi,
     aiApi,
     notificationsApi,
+    documentsApi,
+    analyticsApi,
   }
 
   return (
@@ -147,4 +181,6 @@ export const ApiProvider = ({ children }) => {
     </ApiContext.Provider>
   )
 }
+
+export { API_BASE_URL }
 

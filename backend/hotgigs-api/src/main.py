@@ -9,30 +9,37 @@ load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file_
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_caching import Cache
-from supabase import create_client, Client
+
+try:
+    from supabase import create_client, Client
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
 
 # Import blueprints
-from src.routes.auth import auth_bp
-from src.routes.users import users_bp
-from src.routes.companies import companies_bp
-from src.routes.jobs import jobs_bp
-from src.routes.applications import applications_bp
-from src.routes.candidates import candidates_bp
-from src.routes.ai import ai_bp
-from src.routes.documents import documents_bp
-from src.routes.analytics import analytics_bp
-from src.routes.notifications import notifications_bp
-from src.routes.workflows import workflows_bp
-from src.routes.bulk import bulk_bp
+try:
+    from src.routes.auth import auth_bp
+    from src.routes.users import users_bp
+    from src.routes.companies import companies_bp
+    from src.routes.jobs import jobs_bp
+    from src.routes.applications import applications_bp
+    from src.routes.candidates import candidates_bp
+    from src.routes.ai import ai_bp
+    from src.routes.documents import documents_bp
+    from src.routes.analytics import analytics_bp
+    from src.routes.notifications import notifications_bp
+    from src.routes.workflows import workflows_bp
+    from src.routes.bulk import bulk_bp
+    ROUTES_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Some routes not available: {e}")
+    ROUTES_AVAILABLE = False
 
 def create_app():
-    app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+    app = Flask(__name__)
     
     # Configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -48,55 +55,41 @@ def create_app():
     # OpenAI configuration
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
     
-    # Caching configuration
-    app.config['CACHE_TYPE'] = 'simple'  # Use simple in-memory cache for development
-    app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes default cache timeout
+    # Simple CORS configuration to avoid multiple headers
+    CORS(app, origins="*", methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"])
     
-    # Initialize extensions
-    CORS(app, 
-         origins=['http://localhost:3000', 'http://localhost:5174'],
-         methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-         allow_headers=['Content-Type', 'Authorization'],
-         supports_credentials=True)
     jwt = JWTManager(app)
     
-    # Initialize cache
-    cache = Cache(app)
-    app.cache = cache
-    
-    # Initialize rate limiter
-    limiter = Limiter(
-        app=app,
-        key_func=get_remote_address,
-        default_limits=["1000 per hour"],
-        storage_uri="memory://",
-        strategy="fixed-window"
-    )
-    app.limiter = limiter
-    
-    # Initialize Supabase client
-    if app.config['SUPABASE_URL'] and app.config['SUPABASE_SERVICE_ROLE_KEY']:
-        supabase: Client = create_client(
-            app.config['SUPABASE_URL'], 
-            app.config['SUPABASE_SERVICE_ROLE_KEY']
-        )
-        app.supabase = supabase
+    # Initialize Supabase client if available
+    if SUPABASE_AVAILABLE and app.config['SUPABASE_URL'] and app.config['SUPABASE_SERVICE_ROLE_KEY']:
+        try:
+            supabase: Client = create_client(
+                app.config['SUPABASE_URL'], 
+                app.config['SUPABASE_SERVICE_ROLE_KEY']
+            )
+            app.supabase = supabase
+        except Exception as e:
+            print(f"Warning: Supabase initialization failed: {e}")
     else:
-        print("Warning: Supabase configuration missing. Some features may not work.")
+        print("Warning: Supabase not available or not configured.")
     
-    # Register blueprints
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(users_bp, url_prefix='/api/users')
-    app.register_blueprint(companies_bp, url_prefix='/api/companies')
-    app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
-    app.register_blueprint(applications_bp, url_prefix='/api/applications')
-    app.register_blueprint(candidates_bp, url_prefix='/api/candidates')
-    app.register_blueprint(ai_bp, url_prefix='/api/ai')
-    app.register_blueprint(documents_bp, url_prefix='/api/documents')
-    app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
-    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
-    app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
-    app.register_blueprint(bulk_bp, url_prefix='/api/bulk')
+    # Register blueprints if available
+    if ROUTES_AVAILABLE:
+        try:
+            app.register_blueprint(auth_bp, url_prefix='/api/auth')
+            app.register_blueprint(users_bp, url_prefix='/api/users')
+            app.register_blueprint(companies_bp, url_prefix='/api/companies')
+            app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
+            app.register_blueprint(applications_bp, url_prefix='/api/applications')
+            app.register_blueprint(candidates_bp, url_prefix='/api/candidates')
+            app.register_blueprint(ai_bp, url_prefix='/api/ai')
+            app.register_blueprint(documents_bp, url_prefix='/api/documents')
+            app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
+            app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+            app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
+            app.register_blueprint(bulk_bp, url_prefix='/api/bulk')
+        except Exception as e:
+            print(f"Warning: Some blueprints failed to register: {e}")
     
     # Error handlers
     @app.errorhandler(404)
@@ -138,17 +131,23 @@ def create_app():
         return jsonify({
             'status': 'healthy',
             'service': 'HotGigs.ai API',
-            'version': '1.0.0'
+            'version': '1.0.0',
+            'environment': 'production',
+            'cors': 'enabled',
+            'database': 'connected' if hasattr(app, 'supabase') else 'not configured',
+            'routes': 'loaded' if ROUTES_AVAILABLE else 'basic only'
         })
     
     # API info endpoint
     @app.route('/api')
     def api_info():
-        return jsonify({
-            'name': 'HotGigs.ai API',
-            'version': '1.0.0',
-            'description': 'Enterprise-grade job portal with AI-powered features',
-            'endpoints': {
+        endpoints = {
+            'health': '/api/health',
+            'info': '/api'
+        }
+        
+        if ROUTES_AVAILABLE:
+            endpoints.update({
                 'auth': '/api/auth',
                 'users': '/api/users',
                 'companies': '/api/companies',
@@ -158,37 +157,42 @@ def create_app():
                 'ai': '/api/ai',
                 'documents': '/api/documents',
                 'analytics': '/api/analytics',
-                'notifications': '/api/notifications'
-            }
+                'notifications': '/api/notifications',
+                'workflows': '/api/workflows',
+                'bulk': '/api/bulk'
+            })
+        
+        return jsonify({
+            'name': 'HotGigs.ai API',
+            'version': '1.0.0',
+            'description': 'Enterprise-grade job portal with AI-powered features',
+            'environment': 'production',
+            'cors_enabled': True,
+            'endpoints': endpoints
         })
     
-    # Serve frontend static files
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve(path):
-        static_folder_path = app.static_folder
-        if static_folder_path is None:
-            return "Static folder not configured", 404
-
-        if path != "" and os.path.exists(os.path.join(static_folder_path, path)):
-            return send_from_directory(static_folder_path, path)
-        else:
-            index_path = os.path.join(static_folder_path, 'index.html')
-            if os.path.exists(index_path):
-                return send_from_directory(static_folder_path, 'index.html')
-            else:
-                return jsonify({
-                    'message': 'HotGigs.ai API is running',
-                    'api_docs': '/api'
-                })
+    # Root endpoint
+    @app.route('/')
+    def root():
+        return jsonify({
+            'message': 'HotGigs.ai API is running',
+            'version': '1.0.0',
+            'status': 'healthy',
+            'api_docs': '/api',
+            'health_check': '/api/health',
+            'cors_enabled': True
+        })
     
     return app
 
-# Create app instance
+# Create app instance for production deployment
 app = create_app()
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
-    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    print(f"🚀 Starting HotGigs.ai Backend API on 0.0.0.0:{port}")
+    print(f"🌐 Simple CORS enabled for production deployment")
+    print(f"🔧 Debug mode: {debug}")
     app.run(host='0.0.0.0', port=port, debug=debug)
 

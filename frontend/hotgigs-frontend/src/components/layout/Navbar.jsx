@@ -17,7 +17,8 @@ import {
   Settings, 
   Briefcase,
   Building,
-  Search
+  Search,
+  ChevronDown
 } from 'lucide-react'
 
 const Navbar = () => {
@@ -36,8 +37,21 @@ const Navbar = () => {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/jobs', label: 'Jobs' },
-    { path: '/about', label: 'About Us' },
-    { path: '/contact', label: 'Contact Us' },
+    { 
+      label: 'Solutions',
+      dropdown: [
+        { path: '/for-companies', label: 'For Companies' },
+        { path: '/for-recruiters', label: 'For Recruiters' }
+      ]
+    },
+    { path: '/about-us', label: 'About Us' },
+    { 
+      label: 'Support',
+      dropdown: [
+        { path: '/help-center', label: 'Help Center' },
+        { path: '/contact-us', label: 'Contact Us' }
+      ]
+    }
   ]
 
   return (
@@ -58,18 +72,43 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-medium transition-colors duration-200 ${
-                  isActive(link.path)
-                    ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
-                    : 'text-gray-700 hover:text-blue-600'
-                }`}
-              >
-                {link.label}
-              </Link>
+            {navLinks.map((link, index) => (
+              link.dropdown ? (
+                <DropdownMenu key={index}>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="text-sm font-medium text-gray-700 hover:text-blue-600 flex items-center gap-1">
+                      {link.label}
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48">
+                    {link.dropdown.map((item) => (
+                      <DropdownMenuItem key={item.path} asChild>
+                        <Link
+                          to={item.path}
+                          className={`w-full ${
+                            isActive(item.path) ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`text-sm font-medium transition-colors duration-200 ${
+                    isActive(link.path)
+                      ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                      : 'text-gray-700 hover:text-blue-600'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </div>
 
@@ -162,19 +201,41 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200 py-4">
             <div className="flex flex-col space-y-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 ${
-                    isActive(link.path)
-                      ? 'text-blue-600 bg-blue-50'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-                  }`}
-                >
-                  {link.label}
-                </Link>
+              {navLinks.map((link, index) => (
+                link.dropdown ? (
+                  <div key={index} className="space-y-2">
+                    <div className="text-sm font-medium px-3 py-2 text-gray-900">
+                      {link.label}
+                    </div>
+                    {link.dropdown.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`text-sm font-medium px-6 py-2 rounded-md transition-colors duration-200 block ${
+                          isActive(item.path)
+                            ? 'text-blue-600 bg-blue-50'
+                            : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={() => setIsMenuOpen(false)}
+                    className={`text-sm font-medium px-3 py-2 rounded-md transition-colors duration-200 ${
+                      isActive(link.path)
+                        ? 'text-blue-600 bg-blue-50'
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                )
               ))}
               
               {user ? (

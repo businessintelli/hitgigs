@@ -13,6 +13,13 @@ import JobsPage from './pages/JobsPage'
 import JobDetailsPage from './pages/JobDetailsPage'
 import ProfilePage from './pages/ProfilePage'
 import CompanyPage from './pages/CompanyPage'
+import ForCompaniesPage from './pages/ForCompaniesPage'
+import ForRecruitersPage from './pages/ForRecruitersPage'
+import AboutUsPage from './pages/AboutUsPage'
+import HelpCenterPage from './pages/HelpCenterPage'
+import ContactUsPage from './pages/ContactUsPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsOfServicePage from './pages/TermsOfServicePage'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import './App.css'
 
@@ -48,6 +55,15 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/jobs" element={<JobsPage />} />
           <Route path="/jobs/:id" element={<JobDetailsPage />} />
+          
+          {/* New Content Pages */}
+          <Route path="/for-companies" element={<ForCompaniesPage />} />
+          <Route path="/for-recruiters" element={<ForRecruitersPage />} />
+          <Route path="/about-us" element={<AboutUsPage />} />
+          <Route path="/help-center" element={<HelpCenterPage />} />
+          <Route path="/contact-us" element={<ContactUsPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
           
           {/* Auth Routes */}
           <Route 
@@ -106,11 +122,11 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <ApiProvider>
-        <AuthProvider>
+      <AuthProvider>
+        <ApiProvider>
           <AppContent />
-        </AuthProvider>
-      </ApiProvider>
+        </ApiProvider>
+      </AuthProvider>
     </Router>
   )
 }
