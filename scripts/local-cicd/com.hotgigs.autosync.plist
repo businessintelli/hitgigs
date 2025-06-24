@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.hotgigs.autosync</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/your/hitgigs/scripts/local-cicd/auto-sync.sh</string>
+    </array>
+    
+    <!-- Run every hour (3600 seconds) -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+    
+    <!-- Run at system startup -->
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <!-- Keep the job alive if it exits -->
+    <key>KeepAlive</key>
+    <false/>
+    
+    <!-- Standard output log -->
+    <key>StandardOutPath</key>
+    <string>/path/to/your/hitgigs/autosync-stdout.log</string>
+    
+    <!-- Standard error log -->
+    <key>StandardErrorPath</key>
+    <string>/path/to/your/hitgigs/autosync-stderr.log</string>
+    
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/path/to/your/hitgigs</string>
+    
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    
+    <!-- Only run when network is available -->
+    <key>StartOnMount</key>
+    <false/>
+    
+    <!-- Throttle interval (minimum time between runs) -->
+    <key>ThrottleInterval</key>
+    <integer>300</integer>
+</dict>
+</plist>
+
