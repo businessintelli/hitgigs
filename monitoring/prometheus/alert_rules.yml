@@ -1,0 +1,189 @@
+groups:
+  - name: hotgigs.rules
+    rules:
+      # High-level application alerts
+      - alert: HotGigsAPIDown
+        expr: up{job="hotgigs-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: hotgigs-api
+        annotations:
+          summary: "HotGigs API is down"
+          description: "HotGigs API has been down for more than 1 minute"
+
+      - alert: HotGigsHighErrorRate
+        expr: rate(flask_http_request_exceptions_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: hotgigs-api
+        annotations:
+          summary: "High error rate in HotGigs API"
+          description: "Error rate is {{ $value }} errors per second"
+
+      - alert: HotGigsHighResponseTime
+        expr: histogram_quantile(0.95, rate(flask_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: hotgigs-api
+        annotations:
+          summary: "High response time in HotGigs API"
+          description: "95th percentile response time is {{ $value }}s"
+
+      - alert: HotGigsHighMemoryUsage
+        expr: (container_memory_usage_bytes{pod=~"hotgigs-backend-.*"} / container_spec_memory_limit_bytes) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: hotgigs-api
+        annotations:
+          summary: "High memory usage in HotGigs API"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: HotGigsHighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total{pod=~"hotgigs-backend-.*"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: hotgigs-api
+        annotations:
+          summary: "High CPU usage in HotGigs API"
+          description: "CPU usage is {{ $value | humanizePercentage }}"
+
+      # Database alerts
+      - alert: DatabaseConnectionsHigh
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High number of database connections"
+          description: "Database has {{ $value }} active connections"
+
+      - alert: DatabaseSlowQueries
+        expr: rate(pg_stat_database_tup_fetched[5m]) / rate(pg_stat_database_tup_returned[5m]) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "Database queries are slow"
+          description: "Query efficiency is {{ $value | humanizePercentage }}"
+
+      # Redis alerts
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 1 minute"
+
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: redis
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      # Infrastructure alerts
+      - alert: KubernetesNodeNotReady
+        expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: kubernetes
+        annotations:
+          summary: "Kubernetes node not ready"
+          description: "Node {{ $labels.node }} has been not ready for more than 5 minutes"
+
+      - alert: KubernetesPodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod is crash looping"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is crash looping"
+
+      - alert: KubernetesPodNotReady
+        expr: kube_pod_status_ready{condition="true"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          service: kubernetes
+        annotations:
+          summary: "Pod not ready"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has been not ready for more than 5 minutes"
+
+      # Disk space alerts
+      - alert: DiskSpaceHigh
+        expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Disk space usage is high"
+          description: "Disk usage on {{ $labels.device }} is {{ $value | humanizePercentage }}"
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_size_bytes - node_filesystem_avail_bytes) / node_filesystem_size_bytes > 0.9
+        for: 1m
+        labels:
+          severity: critical
+          service: infrastructure
+        annotations:
+          summary: "Disk space usage is critical"
+          description: "Disk usage on {{ $labels.device }} is {{ $value | humanizePercentage }}"
+
+      # Business metrics alerts
+      - alert: LowUserRegistrations
+        expr: rate(hotgigs_user_registrations_total[1h]) < 0.1
+        for: 30m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "Low user registration rate"
+          description: "User registration rate is {{ $value }} per hour"
+
+      - alert: HighJobApplicationFailures
+        expr: rate(hotgigs_job_applications_failed_total[5m]) / rate(hotgigs_job_applications_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: business
+        annotations:
+          summary: "High job application failure rate"
+          description: "Job application failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: AIServiceDown
+        expr: up{job="hotgigs-ai-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: ai
+        annotations:
+          summary: "AI service is down"
+          description: "AI service has been down for more than 2 minutes"
+
+      - alert: DocumentProcessingBacklog
+        expr: hotgigs_document_processing_queue_size > 100
+        for: 15m
+        labels:
+          severity: warning
+          service: document-processing
+        annotations:
+          summary: "Document processing backlog is high"
+          description: "Document processing queue has {{ $value }} items"
+
