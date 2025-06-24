@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApi } from '../../contexts/ApiContext';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import DocumentManager from '../documents/DocumentManager';
 import { 
   User, 
   MapPin, 
@@ -252,11 +253,7 @@ const CandidateProfileManager = () => {
             />
           )}
           {activeTab === 'documents' && (
-            <DocumentsTab 
-              documents={formData.documents || []} 
-              editing={editing} 
-              onChange={handleInputChange}
-            />
+            <DocumentManager />
           )}
         </div>
       </div>
@@ -827,77 +824,6 @@ const SkillsTab = ({ skills, certifications, editing, onChange }) => {
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-};
-
-// Documents Tab Component
-const DocumentsTab = ({ documents, editing, onChange }) => {
-  const handleFileUpload = (type) => {
-    // Implement file upload logic
-    console.log('Upload file for:', type);
-  };
-
-  const documentTypes = [
-    { id: 'resume', label: 'Resume/CV', icon: FileText },
-    { id: 'cover_letter', label: 'Cover Letter', icon: FileText },
-    { id: 'portfolio', label: 'Portfolio', icon: FileText },
-    { id: 'certifications', label: 'Certificates', icon: Award }
-  ];
-
-  return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Documents</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {documentTypes.map((type) => {
-          const Icon = type.icon;
-          const doc = documents.find(d => d.type === type.id);
-          
-          return (
-            <div key={type.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3 mb-3">
-                <Icon className="w-5 h-5 text-gray-400" />
-                <h4 className="font-medium text-gray-900">{type.label}</h4>
-              </div>
-              
-              {doc ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">{doc.filename}</p>
-                  <p className="text-xs text-gray-500">Uploaded: {doc.uploaded_at}</p>
-                  <div className="flex space-x-2">
-                    <button className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm">
-                      <Download className="w-4 h-4" />
-                      <span>Download</span>
-                    </button>
-                    {editing && (
-                      <button 
-                        onClick={() => handleFileUpload(type.id)}
-                        className="flex items-center space-x-1 text-green-600 hover:text-green-700 text-sm"
-                      >
-                        <Upload className="w-4 h-4" />
-                        <span>Replace</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-gray-500 mb-2">No {type.label.toLowerCase()} uploaded</p>
-                  {editing && (
-                    <button 
-                      onClick={() => handleFileUpload(type.id)}
-                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-sm mx-auto"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload {type.label}</span>
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
       </div>
     </div>
   );
