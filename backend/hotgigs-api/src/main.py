@@ -84,7 +84,6 @@ def create_app():
             )
         except Exception as e:
             print(f"Warning: Failed to initialize rate limiter: {e}")
-            LIMITER_AVAILABLE = False
     
     # Initialize Supabase if available
     if SUPABASE_AVAILABLE:
