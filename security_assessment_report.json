@@ -1,0 +1,211 @@
+{
+  "summary": {
+    "total_tests": 20,
+    "passed_tests": 18,
+    "total_vulnerabilities": 9,
+    "critical_count": 0,
+    "high_count": 6,
+    "medium_count": 3,
+    "low_count": 0,
+    "security_score": 90.0
+  },
+  "vulnerabilities": [
+    {
+      "severity": "HIGH",
+      "category": "Weak Password Policy",
+      "description": "System accepts weak password: '123'",
+      "endpoint": "/api/auth/register",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:48.985621"
+    },
+    {
+      "severity": "HIGH",
+      "category": "Weak Password Policy",
+      "description": "System accepts weak password: 'admin'",
+      "endpoint": "/api/auth/register",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:49.980427"
+    },
+    {
+      "severity": "HIGH",
+      "category": "Weak Password Policy",
+      "description": "System accepts weak password: ''",
+      "endpoint": "/api/auth/register",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:50.946760"
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "No Brute Force Protection",
+      "description": "No rate limiting detected for failed login attempts",
+      "endpoint": "/api/auth/login",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:52.747653"
+    },
+    {
+      "severity": "HIGH",
+      "category": "XSS Vulnerability",
+      "description": "XSS payload reflected in response",
+      "endpoint": "/api/auth/register",
+      "details": "Payload: <script>alert('XSS')</script>",
+      "timestamp": "2025-06-23T22:00:53.335535"
+    },
+    {
+      "severity": "HIGH",
+      "category": "XSS Vulnerability",
+      "description": "XSS payload reflected in response",
+      "endpoint": "/api/auth/register",
+      "details": "Payload: javascript:alert('XSS')",
+      "timestamp": "2025-06-23T22:00:53.917500"
+    },
+    {
+      "severity": "HIGH",
+      "category": "XSS Vulnerability",
+      "description": "XSS payload reflected in response",
+      "endpoint": "/api/auth/register",
+      "details": "Payload: ';alert('XSS');//",
+      "timestamp": "2025-06-23T22:00:54.864560"
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "DoS via Large Payload",
+      "description": "Server error with large payload - potential DoS",
+      "endpoint": "/api/auth/register",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:55.304858"
+    },
+    {
+      "severity": "MEDIUM",
+      "category": "Session Fixation",
+      "description": "Session ID not regenerated after login",
+      "endpoint": "/api/auth/login",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:55.507069"
+    }
+  ],
+  "test_results": [
+    {
+      "test_name": "Password Strength",
+      "status": "PASS",
+      "description": "Rejected weak password: 'password'",
+      "timestamp": "2025-06-23T22:00:49.480718"
+    },
+    {
+      "test_name": "Password Strength",
+      "status": "PASS",
+      "description": "Rejected weak password: 'test'",
+      "timestamp": "2025-06-23T22:00:50.426604"
+    },
+    {
+      "test_name": "SQL Injection Protection",
+      "status": "PASS",
+      "description": "Blocked SQL injection attempt",
+      "timestamp": "2025-06-23T22:00:50.950244"
+    },
+    {
+      "test_name": "SQL Injection Protection",
+      "status": "PASS",
+      "description": "Blocked SQL injection attempt",
+      "timestamp": "2025-06-23T22:00:50.953315"
+    },
+    {
+      "test_name": "SQL Injection Protection",
+      "status": "PASS",
+      "description": "Blocked SQL injection attempt",
+      "timestamp": "2025-06-23T22:00:50.956272"
+    },
+    {
+      "test_name": "SQL Injection Protection",
+      "status": "PASS",
+      "description": "Blocked SQL injection attempt",
+      "timestamp": "2025-06-23T22:00:50.959066"
+    },
+    {
+      "test_name": "Authentication Required",
+      "status": "PASS",
+      "description": "Endpoint properly protected: /api/jobs",
+      "timestamp": "2025-06-23T22:00:52.755842"
+    },
+    {
+      "test_name": "Authentication Required",
+      "status": "PASS",
+      "description": "Endpoint properly protected: /api/applications",
+      "timestamp": "2025-06-23T22:00:52.759866"
+    },
+    {
+      "test_name": "Auth Test",
+      "status": "FAIL",
+      "description": "Unexpected response 405 for /api/documents",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:52.761736"
+    },
+    {
+      "test_name": "Auth Test",
+      "status": "FAIL",
+      "description": "Unexpected response 405 for /api/analytics/dashboard",
+      "details": "",
+      "timestamp": "2025-06-23T22:00:52.763613"
+    },
+    {
+      "test_name": "JWT Validation",
+      "status": "PASS",
+      "description": "Invalid JWT token properly rejected",
+      "timestamp": "2025-06-23T22:00:52.767230"
+    },
+    {
+      "test_name": "JWT Validation",
+      "status": "PASS",
+      "description": "Invalid JWT token properly rejected",
+      "timestamp": "2025-06-23T22:00:52.771028"
+    },
+    {
+      "test_name": "JWT Validation",
+      "status": "PASS",
+      "description": "Invalid JWT token properly rejected",
+      "timestamp": "2025-06-23T22:00:52.774626"
+    },
+    {
+      "test_name": "JWT Validation",
+      "status": "PASS",
+      "description": "Invalid JWT token properly rejected",
+      "timestamp": "2025-06-23T22:00:52.778103"
+    },
+    {
+      "test_name": "CORS Configuration",
+      "status": "PASS",
+      "description": "CORS properly configured",
+      "timestamp": "2025-06-23T22:00:55.307271"
+    },
+    {
+      "test_name": "HTTP Methods",
+      "status": "PASS",
+      "description": "HTTP TRACE properly blocked",
+      "timestamp": "2025-06-23T22:00:55.309347"
+    },
+    {
+      "test_name": "HTTP Methods",
+      "status": "PASS",
+      "description": "HTTP CONNECT properly blocked",
+      "timestamp": "2025-06-23T22:00:55.311303"
+    },
+    {
+      "test_name": "HTTP Methods",
+      "status": "PASS",
+      "description": "HTTP PATCH properly blocked",
+      "timestamp": "2025-06-23T22:00:55.313190"
+    },
+    {
+      "test_name": "Error Handling",
+      "status": "PASS",
+      "description": "No sensitive information in error messages",
+      "timestamp": "2025-06-23T22:00:55.318255"
+    },
+    {
+      "test_name": "Session Security",
+      "status": "PASS",
+      "description": "Session security tests completed",
+      "timestamp": "2025-06-23T22:00:55.507101"
+    }
+  ],
+  "timestamp": "2025-06-23T22:00:55.507315"
+}
