@@ -5,25 +5,143 @@ Handles user registration, login, OAuth, and JWT token management
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from marshmallow import Schema, fields, ValidationError
 import requests
+import re
 from datetime import datetime
 from src.models.user import get_user_service
 
 auth_bp = Blueprint('auth', __name__)
 
+def validate_password_strength(password: str) -> bool:
+    """
+    Validate password strength with comprehensive security requirements
+    
+    Requirements:
+    - Minimum 8 characters
+    - At least one uppercase letter
+    - At least one lowercase letter  
+    - At least one digit
+    - At least one special character
+    - No common weak passwords
+    - No sequential characters
+    """
+    if not password or len(password) < 8:
+        raise ValidationError("Password must be at least 8 characters long")
+    
+    if len(password) > 128:
+        raise ValidationError("Password must be less than 128 characters")
+    
+    # Check for uppercase letter
+    if not re.search(r'[A-Z]', password):
+        raise ValidationError("Password must contain at least one uppercase letter")
+    
+    # Check for lowercase letter
+    if not re.search(r'[a-z]', password):
+        raise ValidationError("Password must contain at least one lowercase letter")
+    
+    # Check for digit
+    if not re.search(r'\d', password):
+        raise ValidationError("Password must contain at least one number")
+    
+    # Check for special character
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        raise ValidationError("Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)")
+    
+    # Check for common weak passwords
+    weak_passwords = [
+        'password', 'password123', '123456', '123456789', 'qwerty', 'abc123',
+        'password1', 'admin', 'admin123', 'root', 'user', 'test', 'guest',
+        '111111', '000000', '123123', 'welcome', 'login', 'passw0rd'
+    ]
+    
+    if password.lower() in weak_passwords:
+        raise ValidationError("Password is too common and easily guessable")
+    
+    # Check for sequential characters (like 123, abc, qwe)
+    sequential_patterns = [
+        '123456', '234567', '345678', '456789', '567890',
+        'abcdef', 'bcdefg', 'cdefgh', 'defghi', 'efghij',
+        'qwerty', 'asdfgh', 'zxcvbn'
+    ]
+    
+    password_lower = password.lower()
+    for pattern in sequential_patterns:
+        if pattern in password_lower:
+            raise ValidationError("Password cannot contain sequential characters")
+    
+    # Check for repeated characters (like aaa, 111)
+    if re.search(r'(.)\1{2,}', password):
+        raise ValidationError("Password cannot contain more than 2 consecutive identical characters")
+    
+    return True
+
+def sanitize_input(input_string: str) -> str:
+    """
+    Sanitize user input to prevent XSS attacks
+    
+    Removes or escapes potentially dangerous characters and HTML tags
+    """
+    if not input_string:
+        return ""
+    
+    # Remove HTML tags
+    input_string = re.sub(r'<[^>]*>', '', input_string)
+    
+    # Remove script tags and their content
+    input_string = re.sub(r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>', '', input_string, flags=re.IGNORECASE)
+    
+    # Remove javascript: protocol
+    input_string = re.sub(r'javascript:', '', input_string, flags=re.IGNORECASE)
+    
+    # Remove on* event handlers
+    input_string = re.sub(r'\bon\w+\s*=', '', input_string, flags=re.IGNORECASE)
+    
+    # Escape special characters
+    dangerous_chars = {
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#x27;',
+        '&': '&amp;'
+    }
+    
+    for char, escape in dangerous_chars.items():
+        input_string = input_string.replace(char, escape)
+    
+    return input_string.strip()
+
 # Validation schemas
 class RegisterSchema(Schema):
     email = fields.Email(required=True)
-    password = fields.Str(required=True, validate=lambda x: len(x) >= 8)
-    first_name = fields.Str(required=True)
-    last_name = fields.Str(required=True)
+    password = fields.Str(required=True, validate=validate_password_strength)
+    first_name = fields.Str(required=True, validate=lambda x: len(sanitize_input(x)) >= 1)
+    last_name = fields.Str(required=True, validate=lambda x: len(sanitize_input(x)) >= 1)
     user_type = fields.Str(required=True, validate=lambda x: x in ['candidate', 'company', 'freelance_recruiter'])
     phone = fields.Str(allow_none=True)
+    
+    def load(self, json_data, *args, **kwargs):
+        """Override load to sanitize input fields"""
+        if json_data:
+            # Sanitize text fields
+            for field in ['first_name', 'last_name', 'phone']:
+                if field in json_data and json_data[field]:
+                    json_data[field] = sanitize_input(json_data[field])
+        return super().load(json_data, *args, **kwargs)
 
 class LoginSchema(Schema):
     email = fields.Email(required=True)
     password = fields.Str(required=True)
+    
+    def load(self, json_data, *args, **kwargs):
+        """Override load to sanitize input fields"""
+        if json_data:
+            # Sanitize email field (basic sanitization, email validation handles the rest)
+            if 'email' in json_data and json_data['email']:
+                json_data['email'] = sanitize_input(json_data['email'])
+        return super().load(json_data, *args, **kwargs)
 
 class OAuthSchema(Schema):
     provider = fields.Str(required=True, validate=lambda x: x in ['google', 'github', 'linkedin'])
@@ -32,10 +150,17 @@ class OAuthSchema(Schema):
 
 class PasswordResetSchema(Schema):
     email = fields.Email(required=True)
+    
+    def load(self, json_data, *args, **kwargs):
+        """Override load to sanitize input fields"""
+        if json_data:
+            if 'email' in json_data and json_data['email']:
+                json_data['email'] = sanitize_input(json_data['email'])
+        return super().load(json_data, *args, **kwargs)
 
 class PasswordChangeSchema(Schema):
     current_password = fields.Str(required=True)
-    new_password = fields.Str(required=True, validate=lambda x: len(x) >= 8)
+    new_password = fields.Str(required=True, validate=validate_password_strength)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

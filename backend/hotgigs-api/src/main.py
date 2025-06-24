@@ -12,6 +12,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from flask import Flask, send_from_directory, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from supabase import create_client, Client
 
 # Import blueprints
@@ -50,6 +52,16 @@ def create_app():
          allow_headers=['Content-Type', 'Authorization'],
          supports_credentials=True)
     jwt = JWTManager(app)
+    
+    # Initialize rate limiter
+    limiter = Limiter(
+        app=app,
+        key_func=get_remote_address,
+        default_limits=["1000 per hour"],
+        storage_uri="memory://",
+        strategy="fixed-window"
+    )
+    app.limiter = limiter
     
     # Initialize Supabase client
     if app.config['SUPABASE_URL'] and app.config['SUPABASE_SERVICE_ROLE_KEY']:
