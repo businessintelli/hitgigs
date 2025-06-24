@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useApi } from '../../contexts/ApiContext';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import JobPostingManager from '../jobs/JobPostingManager';
+import AnalyticsDashboard from '../analytics/AnalyticsDashboard';
 import { 
   Building2, 
   Users, 
@@ -201,9 +202,7 @@ const CompanyAdminInterface = () => {
             />
           )}
           {activeTab === 'analytics' && (
-            <AnalyticsTab 
-              companyId={company?.id}
-            />
+            <AnalyticsDashboard userRole="company" />
           )}
           {activeTab === 'settings' && (
             <CompanySettingsTab 
@@ -605,85 +604,6 @@ const TeamManagementTab = ({ companyId }) => {
 // Job Postings Tab Component
 const JobPostingsTab = ({ companyId }) => {
   return <JobPostingManager />;
-};
-
-// Analytics Tab Component
-const AnalyticsTab = ({ companyId }) => {
-  const [analytics, setAnalytics] = useState({
-    overview: {
-      total_jobs: 0,
-      total_applications: 0,
-      total_hired: 0,
-      success_rate: 0
-    },
-    recent_activity: [],
-    top_jobs: []
-  });
-
-  return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium text-gray-900">Analytics & Insights</h3>
-      
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <Briefcase className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Jobs Posted</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.overview.total_jobs}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Users className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Total Applications</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.overview.total_applications}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Award className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Successful Hires</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.overview.total_hired}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center space-x-3">
-            <div className="p-3 bg-orange-100 rounded-lg">
-              <Target className="w-6 h-6 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Success Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{analytics.overview.success_rate}%</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts and detailed analytics would go here */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-medium text-gray-900 mb-4">Hiring Performance</h4>
-        <div className="h-64 flex items-center justify-center text-gray-500">
-          <p>Analytics charts will be implemented here</p>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 // Company Settings Tab Component
