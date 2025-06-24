@@ -204,7 +204,7 @@ def get_application_details(application_id):
                     logo_url,
                     industry,
                     description,
-                    website_url
+                    website
                 )
             ),
             candidate_profiles:candidate_id (

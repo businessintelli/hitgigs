@@ -17,7 +17,7 @@ class CreateCompanySchema(Schema):
     description = fields.Str(allow_none=True)
     industry = fields.Str(allow_none=True)
     company_size = fields.Str(allow_none=True)
-    website_url = fields.Url(allow_none=True)
+    website = fields.Url(allow_none=True)
     headquarters_location = fields.Str(allow_none=True)
     founded_year = fields.Int(allow_none=True)
 

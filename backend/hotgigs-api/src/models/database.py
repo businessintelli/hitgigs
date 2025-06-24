@@ -35,6 +35,11 @@ class SupabaseService:
         """Get the Supabase client instance"""
         return self.client
     
+    @property
+    def supabase(self) -> Client:
+        """Backward compatibility property for accessing the client"""
+        return self.client
+    
     # Generic CRUD operations
     def create_record(self, table: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Create a new record in the specified table"""

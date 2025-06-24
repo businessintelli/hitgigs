@@ -19,7 +19,7 @@ class UpdateProfileSchema(Schema):
     location = fields.Str(allow_none=True)
     linkedin_url = fields.Url(allow_none=True)
     github_url = fields.Url(allow_none=True)
-    website_url = fields.Url(allow_none=True)
+    portfolio_url = fields.Url(allow_none=True)
 
 class UpdateCandidateProfileSchema(Schema):
     headline = fields.Str(allow_none=True)
@@ -213,7 +213,7 @@ def get_user_by_id(user_id):
                 'location': user.get('profile', {}).get('location'),
                 'linkedin_url': user.get('profile', {}).get('linkedin_url'),
                 'github_url': user.get('profile', {}).get('github_url'),
-                'website_url': user.get('profile', {}).get('website_url')
+                'portfolio_url': user.get('profile', {}).get('portfolio_url')
             }
         }
         

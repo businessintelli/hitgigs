@@ -1,0 +1,58 @@
+[
+  {
+    "test_name": "GET /api/health",
+    "response_time_ms": 3.9,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:03.121835"
+  },
+  {
+    "test_name": "GET /api/jobs/?search=software",
+    "response_time_ms": 180.02,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:03.301910"
+  },
+  {
+    "test_name": "GET /api/jobs/?limit=5",
+    "response_time_ms": 156.44,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:03.458409"
+  },
+  {
+    "test_name": "POST /api/auth/register",
+    "response_time_ms": 543.65,
+    "status_code": 201,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:04.002124"
+  },
+  {
+    "test_name": "DB Query - Small result set",
+    "response_time_ms": 119.59,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:05.165721"
+  },
+  {
+    "test_name": "DB Query - Medium result set",
+    "response_time_ms": 100.21,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:05.265990"
+  },
+  {
+    "test_name": "DB Query - Search query",
+    "response_time_ms": 93.02,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:05.359066"
+  },
+  {
+    "test_name": "DB Query - Filter query",
+    "response_time_ms": 234.27,
+    "status_code": 200,
+    "success": true,
+    "timestamp": "2025-06-23T21:58:05.593399"
+  }
+]

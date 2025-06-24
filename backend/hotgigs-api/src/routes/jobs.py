@@ -20,17 +20,16 @@ class JobCreateSchema(Schema):
     description = fields.Str(required=True, validate=lambda x: len(x.strip()) >= 50)
     requirements = fields.Str(required=True)
     location = fields.Str(required=True)
-    job_type = fields.Str(required=True, validate=lambda x: x in ['full-time', 'part-time', 'contract', 'freelance', 'internship'])
+    employment_type = fields.Str(required=True, validate=lambda x: x in ['full-time', 'part-time', 'contract', 'freelance', 'internship'])
     experience_level = fields.Str(required=True, validate=lambda x: x in ['entry', 'mid', 'senior', 'executive'])
     salary_min = fields.Int(allow_none=True)
     salary_max = fields.Int(allow_none=True)
-    salary_currency = fields.Str(load_default='USD')
-    remote_type = fields.Str(required=True, validate=lambda x: x in ['on-site', 'remote', 'hybrid'])
+    currency = fields.Str(load_default='USD')
+    remote_work_allowed = fields.Bool(load_default=False)
     department = fields.Str(allow_none=True)
     skills_required = fields.List(fields.Str(), load_default=[])
     benefits = fields.List(fields.Str(), load_default=[])
     application_deadline = fields.DateTime(allow_none=True)
-    is_public = fields.Bool(load_default=True)
     is_featured = fields.Bool(load_default=False)
 
 class JobUpdateSchema(Schema):
@@ -38,17 +37,16 @@ class JobUpdateSchema(Schema):
     description = fields.Str(validate=lambda x: len(x.strip()) >= 50)
     requirements = fields.Str()
     location = fields.Str()
-    job_type = fields.Str(validate=lambda x: x in ['full-time', 'part-time', 'contract', 'freelance', 'internship'])
+    employment_type = fields.Str(validate=lambda x: x in ['full-time', 'part-time', 'contract', 'freelance', 'internship'])
     experience_level = fields.Str(validate=lambda x: x in ['entry', 'mid', 'senior', 'executive'])
     salary_min = fields.Int(allow_none=True)
     salary_max = fields.Int(allow_none=True)
-    remote_type = fields.Str(validate=lambda x: x in ['on-site', 'remote', 'hybrid'])
+    remote_work_allowed = fields.Bool()
     department = fields.Str(allow_none=True)
     skills_required = fields.List(fields.Str())
     benefits = fields.List(fields.Str())
     application_deadline = fields.DateTime(allow_none=True)
-    employment_status = fields.Str(validate=lambda x: x in ['open', 'closed', 'paused', 'filled'])
-    is_public = fields.Bool()
+    status = fields.Str(validate=lambda x: x in ['draft', 'active', 'paused', 'closed', 'expired'])
     is_featured = fields.Bool()
 
 @jobs_bp.route('/', methods=['GET'])
@@ -62,9 +60,9 @@ def get_public_jobs():
         # Search and filter parameters
         search = request.args.get('search', '').strip()
         location = request.args.get('location', '').strip()
-        job_type = request.args.get('job_type', '').strip()
+        employment_type = request.args.get('employment_type', '').strip()
         experience_level = request.args.get('experience_level', '').strip()
-        remote_type = request.args.get('remote_type', '').strip()
+        remote_work_allowed = request.args.get('remote_work_allowed', '').strip()
         company_id = request.args.get('company_id', '').strip()
         skills = request.args.get('skills', '').strip()
         salary_min = request.args.get('salary_min')
@@ -82,12 +80,12 @@ def get_public_jobs():
             title,
             description,
             location,
-            job_type,
+            employment_type,
             experience_level,
             salary_min,
             salary_max,
-            salary_currency,
-            remote_type,
+            currency,
+            remote_work_allowed,
             skills_required,
             benefits,
             application_deadline,
@@ -100,9 +98,9 @@ def get_public_jobs():
                 logo_url,
                 industry,
                 company_size,
-                location as company_location
+                headquarters
             )
-        """).eq('is_public', True).eq('employment_status', 'open')
+        """).eq('status', 'active')
         
         # Apply filters
         if search:
@@ -112,14 +110,14 @@ def get_public_jobs():
         if location:
             query = query.ilike('location', f'%{location}%')
         
-        if job_type:
-            query = query.eq('job_type', job_type)
+        if employment_type:
+            query = query.eq('employment_type', employment_type)
         
         if experience_level:
             query = query.eq('experience_level', experience_level)
         
-        if remote_type:
-            query = query.eq('remote_type', remote_type)
+        if remote_work_allowed:
+            query = query.eq('remote_work_allowed', remote_work_allowed)
         
         if company_id:
             query = query.eq('company_id', company_id)
@@ -144,7 +142,7 @@ def get_public_jobs():
         jobs = result.data or []
         
         # Get total count for pagination
-        count_result = db_service.supabase.table('jobs').select('id', count='exact').eq('is_public', True).eq('employment_status', 'open').execute()
+        count_result = db_service.supabase.table('jobs').select('id', count='exact').eq('status', 'active').execute()
         total_count = count_result.count or 0
         
         return jsonify({
@@ -158,9 +156,9 @@ def get_public_jobs():
             'filters': {
                 'search': search,
                 'location': location,
-                'job_type': job_type,
+                'employment_type': employment_type,
                 'experience_level': experience_level,
-                'remote_type': remote_type,
+                'remote_work_allowed': remote_work_allowed,
                 'company_id': company_id,
                 'salary_min': salary_min,
                 'salary_max': salary_max
@@ -184,12 +182,11 @@ def get_job_details(job_id):
                 industry,
                 company_size,
                 description,
-                website_url,
-                location,
-                founded_year,
-                employee_count
+                website,
+                headquarters,
+                founded_year
             )
-        """).eq('id', job_id).eq('is_public', True).execute()
+        """).eq('id', job_id).eq('status', 'active').execute()
         
         if not result.data:
             return jsonify({'error': 'Job not found'}), 404
@@ -209,10 +206,10 @@ def get_job_details(job_id):
             id,
             title,
             location,
-            job_type,
+            employment_type,
             created_at,
             companies:company_id (name, logo_url)
-        """).eq('is_public', True).eq('employment_status', 'open').neq('id', job_id).limit(5).execute()
+        """).eq('status', 'active').neq('id', job_id).limit(5).execute()
         
         similar_jobs = similar_jobs_result.data or []
         
@@ -382,8 +379,7 @@ def delete_job(job_id):
         
         # Soft delete by updating status
         db_service.update_record('jobs', job_id, {
-            'employment_status': 'deleted',
-            'is_public': False
+            'status': 'closed'
         })
         
         return jsonify({
@@ -449,24 +445,24 @@ def get_job_stats():
     """Get public job statistics"""
     try:
         # Get total active jobs
-        total_result = db_service.supabase.table('jobs').select('id', count='exact').eq('is_public', True).eq('employment_status', 'open').execute()
+        total_result = db_service.supabase.table('jobs').select('id', count='exact').eq('status', 'active').execute()
         total_jobs = total_result.count or 0
         
         # Get jobs by type
-        types_result = db_service.supabase.table('jobs').select('job_type', count='exact').eq('is_public', True).eq('employment_status', 'open').execute()
+        types_result = db_service.supabase.table('jobs').select('employment_type', count='exact').eq('status', 'active').execute()
         
         # Get jobs by location (top 10)
-        locations_result = db_service.supabase.table('jobs').select('location', count='exact').eq('is_public', True).eq('employment_status', 'open').limit(10).execute()
+        locations_result = db_service.supabase.table('jobs').select('location', count='exact').eq('status', 'active').limit(10).execute()
         
         # Get recent jobs count (last 7 days)
         week_ago = (datetime.now() - timedelta(days=7)).isoformat()
-        recent_result = db_service.supabase.table('jobs').select('id', count='exact').eq('is_public', True).eq('employment_status', 'open').gte('created_at', week_ago).execute()
+        recent_result = db_service.supabase.table('jobs').select('id', count='exact').eq('status', 'active').gte('created_at', week_ago).execute()
         recent_jobs = recent_result.count or 0
         
         return jsonify({
             'total_jobs': total_jobs,
             'recent_jobs': recent_jobs,
-            'job_types': types_result.data or [],
+            'employment_types': types_result.data or [],
             'top_locations': locations_result.data or []
         }), 200
         
