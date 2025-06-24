@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useApi } from '../../contexts/ApiContext';
 import LoadingSpinner from '../ui/LoadingSpinner';
+import JobPostingManager from '../jobs/JobPostingManager';
 import { 
   Building2, 
   Users, 
@@ -603,118 +604,7 @@ const TeamManagementTab = ({ companyId }) => {
 
 // Job Postings Tab Component
 const JobPostingsTab = ({ companyId }) => {
-  const { apiCall } = useApi();
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
-
-  useEffect(() => {
-    fetchJobs();
-  }, [filter]);
-
-  const fetchJobs = async () => {
-    try {
-      setLoading(true);
-      const response = await apiCall(`/companies/${companyId}/jobs?status=${filter}`, 'GET');
-      setJobs(response.data);
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateJobStatus = async (jobId, status) => {
-    try {
-      await apiCall(`/jobs/${jobId}`, 'PUT', { status });
-      fetchJobs();
-    } catch (error) {
-      console.error('Error updating job status:', error);
-    }
-  };
-
-  if (loading) {
-    return <LoadingSpinner />;
-  }
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Job Postings</h3>
-        <div className="flex space-x-3">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="all">All Jobs</option>
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="closed">Closed</option>
-          </select>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <Plus className="w-4 h-4" />
-            <span>Post New Job</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Jobs List */}
-      <div className="space-y-4">
-        {jobs.map((job) => (
-          <div key={job.id} className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h4 className="text-lg font-medium text-gray-900">{job.title}</h4>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    job.status === 'active' ? 'bg-green-100 text-green-800' :
-                    job.status === 'paused' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {job.status}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-3">{job.description?.substring(0, 150)}...</p>
-                <div className="flex items-center space-x-6 text-sm text-gray-500">
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{job.location}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <DollarSign className="w-4 h-4" />
-                    <span>{job.salary_range}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>Posted {new Date(job.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Users className="w-4 h-4" />
-                    <span>{job.applications_count || 0} applications</span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <select
-                  value={job.status}
-                  onChange={(e) => updateJobStatus(job.id, e.target.value)}
-                  className="text-sm border border-gray-300 rounded px-2 py-1"
-                >
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="closed">Closed</option>
-                </select>
-                <button className="p-2 text-gray-400 hover:text-gray-600">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <JobPostingManager />;
 };
 
 // Analytics Tab Component
