@@ -72,8 +72,8 @@ class HotGigsIntegrationTester:
         """Test user login endpoint"""
         try:
             login_data = {
-                "email": "jane.developer@hotgigs.ai",
-                "password": "password123"
+                "email": "test3@example.com",
+                "password": "Admin123!"
             }
             
             response = self.session.post(f"{self.base_url}/api/auth/login", json=login_data)
