@@ -28,6 +28,8 @@ from src.routes.ai import ai_bp
 from src.routes.documents import documents_bp
 from src.routes.analytics import analytics_bp
 from src.routes.notifications import notifications_bp
+from src.routes.workflows import workflows_bp
+from src.routes.bulk import bulk_bp
 
 def create_app():
     app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
@@ -93,6 +95,8 @@ def create_app():
     app.register_blueprint(documents_bp, url_prefix='/api/documents')
     app.register_blueprint(analytics_bp, url_prefix='/api/analytics')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    app.register_blueprint(workflows_bp, url_prefix='/api/workflows')
+    app.register_blueprint(bulk_bp, url_prefix='/api/bulk')
     
     # Error handlers
     @app.errorhandler(404)

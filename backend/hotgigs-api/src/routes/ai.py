@@ -8,6 +8,12 @@ from marshmallow import Schema, fields, ValidationError
 import os
 from datetime import datetime, timezone
 from src.models.optimized_database import OptimizedSupabaseService
+from src.services.advanced_ai import (
+    vector_service, 
+    interview_agent, 
+    feedback_loop, 
+    predictive_analytics
+)
 
 ai_bp = Blueprint('ai', __name__)
 db_service = OptimizedSupabaseService()
@@ -482,4 +488,357 @@ def handle_general_error(e):
         'message': 'An unexpected error occurred',
         'status': 'error'
     }), 500
+
+
+
+# Advanced AI validation schemas
+class SemanticSearchSchema(Schema):
+    query = fields.Str(required=True, validate=lambda x: len(x.strip()) >= 3)
+    top_k = fields.Int(load_default=10, validate=lambda x: 1 <= x <= 50)
+
+class InterviewStartSchema(Schema):
+    candidate_id = fields.UUID(required=True)
+    job_id = fields.UUID(required=True)
+    job_description = fields.Str(required=True)
+
+class InterviewResponseSchema(Schema):
+    session_id = fields.Str(required=True)
+    response = fields.Str(required=True, validate=lambda x: len(x.strip()) >= 10)
+
+class FeedbackSchema(Schema):
+    job_id = fields.UUID(required=True)
+    candidate_id = fields.UUID(required=True)
+    feedback = fields.Str(required=True)
+    reason = fields.Str(required=True)
+
+class CandidateAnalysisSchema(Schema):
+    job_id = fields.UUID(required=True)
+    job_description = fields.Str(required=True)
+    resume_text = fields.Str(required=True)
+
+@ai_bp.route('/semantic-search', methods=['POST'])
+@jwt_required()
+def semantic_job_search():
+    """Perform semantic search for jobs using vector embeddings"""
+    try:
+        schema = SemanticSearchSchema()
+        data = schema.load(request.get_json())
+        
+        # Get all jobs for embedding if not already done
+        jobs_response = db_service.get_jobs()
+        if jobs_response.get('success'):
+            jobs = jobs_response.get('data', [])
+            
+            # Create embeddings if needed
+            if vector_service.job_vectors is None:
+                vector_service.create_job_embeddings(jobs)
+            
+            # Perform semantic search
+            results = vector_service.semantic_job_search(
+                data['query'], 
+                data['top_k']
+            )
+            
+            return jsonify({
+                'success': True,
+                'data': results,
+                'total_results': len(results),
+                'query': data['query']
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to retrieve jobs for search'
+            }), 500
+            
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Semantic search error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/find-candidates', methods=['POST'])
+@jwt_required()
+def find_similar_candidates():
+    """Find candidates similar to job requirements using vector embeddings"""
+    try:
+        data = request.get_json()
+        job_description = data.get('job_description', '')
+        top_k = data.get('top_k', 10)
+        
+        if not job_description:
+            return jsonify({
+                'success': False,
+                'error': 'Job description is required'
+            }), 400
+        
+        # Get candidate resumes for embedding if not already done
+        # This would typically come from a candidates/resumes table
+        # For now, we'll use a placeholder
+        candidates = []  # Would fetch from database
+        
+        if vector_service.resume_vectors is None and candidates:
+            vector_service.create_resume_embeddings(candidates)
+        
+        # Find similar candidates
+        results = vector_service.find_similar_candidates(job_description, top_k)
+        
+        return jsonify({
+            'success': True,
+            'data': results,
+            'total_results': len(results),
+            'job_description_length': len(job_description)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Find candidates error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/interview/start', methods=['POST'])
+@jwt_required()
+def start_ai_interview():
+    """Start an AI-powered interview session"""
+    try:
+        schema = InterviewStartSchema()
+        data = schema.load(request.get_json())
+        
+        # Start interview session
+        result = interview_agent.start_interview(
+            str(data['candidate_id']),
+            str(data['job_id']),
+            data['job_description']
+        )
+        
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 500
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Start interview error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/interview/respond', methods=['POST'])
+@jwt_required()
+def submit_interview_response():
+    """Submit response to AI interview question"""
+    try:
+        schema = InterviewResponseSchema()
+        data = schema.load(request.get_json())
+        
+        # Submit response and get next question or assessment
+        result = interview_agent.submit_response(
+            data['session_id'],
+            data['response']
+        )
+        
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'error': result['error']
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'data': result
+        }), 200
+        
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Submit response error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/interview/<session_id>', methods=['GET'])
+@jwt_required()
+def get_interview_session(session_id):
+    """Get interview session details"""
+    try:
+        session = interview_agent.get_interview_session(session_id)
+        
+        if not session:
+            return jsonify({
+                'success': False,
+                'error': 'Interview session not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': session
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Get interview session error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/feedback/store', methods=['POST'])
+@jwt_required()
+def store_rejection_feedback():
+    """Store rejection feedback for learning"""
+    try:
+        schema = FeedbackSchema()
+        data = schema.load(request.get_json())
+        
+        # Store feedback for future learning
+        feedback_loop.store_rejection_feedback(
+            str(data['job_id']),
+            str(data['candidate_id']),
+            data['feedback'],
+            data['reason']
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': 'Feedback stored successfully'
+        }), 200
+        
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Store feedback error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/analyze-fit', methods=['POST'])
+@jwt_required()
+def analyze_candidate_fit():
+    """Analyze candidate fit using historical feedback"""
+    try:
+        schema = CandidateAnalysisSchema()
+        data = schema.load(request.get_json())
+        
+        # Analyze candidate fit with historical feedback
+        analysis = feedback_loop.analyze_candidate_fit(
+            str(data['job_id']),
+            data['job_description'],
+            data['resume_text']
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': analysis
+        }), 200
+        
+    except ValidationError as e:
+        return jsonify({
+            'success': False,
+            'error': 'Validation error',
+            'details': e.messages
+        }), 400
+    except Exception as e:
+        current_app.logger.error(f"Analyze fit error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/predict-success', methods=['POST'])
+@jwt_required()
+def predict_hiring_success():
+    """Predict hiring success using predictive analytics"""
+    try:
+        data = request.get_json()
+        candidate_data = data.get('candidate_data', {})
+        job_data = data.get('job_data', {})
+        
+        if not candidate_data or not job_data:
+            return jsonify({
+                'success': False,
+                'error': 'Both candidate_data and job_data are required'
+            }), 400
+        
+        # Get historical data (would come from database)
+        historical_data = []  # Placeholder for historical hiring data
+        
+        # Generate prediction
+        prediction = predictive_analytics.predict_hiring_success(
+            candidate_data,
+            job_data,
+            historical_data
+        )
+        
+        return jsonify({
+            'success': True,
+            'data': prediction
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Predict success error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
+
+@ai_bp.route('/embeddings/refresh', methods=['POST'])
+@jwt_required()
+def refresh_embeddings():
+    """Refresh vector embeddings for jobs and resumes"""
+    try:
+        # Get fresh data from database
+        jobs_response = db_service.get_jobs()
+        
+        if jobs_response.get('success'):
+            jobs = jobs_response.get('data', [])
+            vector_service.create_job_embeddings(jobs)
+            
+            # Would also refresh resume embeddings if we had resume data
+            
+            return jsonify({
+                'success': True,
+                'message': f'Refreshed embeddings for {len(jobs)} jobs',
+                'jobs_processed': len(jobs)
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to retrieve jobs for embedding refresh'
+            }), 500
+            
+    except Exception as e:
+        current_app.logger.error(f"Refresh embeddings error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Internal server error'
+        }), 500
 
