@@ -14,6 +14,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_caching import Cache
 from supabase import create_client, Client
 
 # Import blueprints
@@ -45,6 +46,10 @@ def create_app():
     # OpenAI configuration
     app.config['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
     
+    # Caching configuration
+    app.config['CACHE_TYPE'] = 'simple'  # Use simple in-memory cache for development
+    app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # 5 minutes default cache timeout
+    
     # Initialize extensions
     CORS(app, 
          origins=['http://localhost:3000', 'http://localhost:5174'],
@@ -52,6 +57,10 @@ def create_app():
          allow_headers=['Content-Type', 'Authorization'],
          supports_credentials=True)
     jwt = JWTManager(app)
+    
+    # Initialize cache
+    cache = Cache(app)
+    app.cache = cache
     
     # Initialize rate limiter
     limiter = Limiter(

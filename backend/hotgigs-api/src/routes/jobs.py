@@ -2,12 +2,12 @@
 Jobs routes for HotGigs.ai
 Handles job posting, management, and job-related operations
 """
-
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import Schema, fields, ValidationError
-from datetime import datetime, timedelta
 import re
+import html
+from datetime import datetime
 from src.models.database import DatabaseService
 
 jobs_bp = Blueprint('jobs', __name__)
@@ -54,6 +54,14 @@ class JobUpdateSchema(Schema):
 def get_public_jobs():
     """Get public job listings (no authentication required)"""
     try:
+        # Create cache key based on query parameters
+        cache_key = f"jobs_public_{hash(str(sorted(request.args.items())))}"
+        
+        # Try to get from cache first
+        cached_result = current_app.cache.get(cache_key)
+        if cached_result:
+            return jsonify(cached_result)
+        
         # Pagination parameters
         page = int(request.args.get('page', 1))
         limit = min(int(request.args.get('limit', 20)), 100)  # Max 100 per page

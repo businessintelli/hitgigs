@@ -1,58 +1,58 @@
 [
   {
     "test_name": "GET /api/health",
-    "response_time_ms": 3.9,
+    "response_time_ms": 4.35,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:03.121835"
+    "timestamp": "2025-06-23T22:32:12.756114"
   },
   {
     "test_name": "GET /api/jobs/?search=software",
-    "response_time_ms": 180.02,
+    "response_time_ms": 294.57,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:03.301910"
+    "timestamp": "2025-06-23T22:32:13.050740"
   },
   {
     "test_name": "GET /api/jobs/?limit=5",
-    "response_time_ms": 156.44,
+    "response_time_ms": 141.1,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:03.458409"
+    "timestamp": "2025-06-23T22:32:13.191897"
   },
   {
     "test_name": "POST /api/auth/register",
-    "response_time_ms": 543.65,
-    "status_code": 201,
-    "success": true,
-    "timestamp": "2025-06-23T21:58:04.002124"
+    "response_time_ms": 3.42,
+    "status_code": 400,
+    "success": false,
+    "timestamp": "2025-06-23T22:32:13.195369"
   },
   {
     "test_name": "DB Query - Small result set",
-    "response_time_ms": 119.59,
+    "response_time_ms": 95.47,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:05.165721"
+    "timestamp": "2025-06-23T22:32:14.315162"
   },
   {
     "test_name": "DB Query - Medium result set",
-    "response_time_ms": 100.21,
+    "response_time_ms": 92.22,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:05.265990"
+    "timestamp": "2025-06-23T22:32:14.407447"
   },
   {
     "test_name": "DB Query - Search query",
-    "response_time_ms": 93.02,
+    "response_time_ms": 111.25,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:05.359066"
+    "timestamp": "2025-06-23T22:32:14.518756"
   },
   {
     "test_name": "DB Query - Filter query",
-    "response_time_ms": 234.27,
+    "response_time_ms": 132.19,
     "status_code": 200,
     "success": true,
-    "timestamp": "2025-06-23T21:58:05.593399"
+    "timestamp": "2025-06-23T22:32:14.651004"
   }
 ]
