@@ -1,4 +1,283 @@
-import React, { useState, useEffect } from 'react'
+#!/usr/bin/env python3
+"""
+Add All Missing Pages and Routes
+
+This script adds all the missing pages and routes that have been developed
+but are not currently imported or routed in App.jsx.
+"""
+
+import os
+import sys
+
+def add_missing_imports():
+    """Add all missing page imports to App.jsx"""
+    
+    app_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'hotgigs-frontend', 'src', 'App.jsx')
+    
+    # Read the current file
+    with open(app_file, 'r') as f:
+        content = f.read()
+    
+    # Current imports section
+    old_imports = '''// Import pages
+import HomePage from './pages/HomePage'
+import JobsPage from './pages/JobsPage'
+import AboutPage from './pages/AboutPage'
+import ContactPage from './pages/ContactPage'
+import SignInPage from './pages/SignInPage'
+import SignUpPage from './pages/SignUpPage'
+import StatusDashboard from './pages/StatusDashboard'
+import SavedJobsPage from './pages/SavedJobsPage'
+import MyApplicationsPage from './pages/MyApplicationsPage'
+import CompanyDashboard from './pages/CompanyDashboard'
+import PostJobPage from './pages/PostJobPage'
+import ApplicationsPage from './pages/ApplicationsPage'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard' '''
+    
+    # New comprehensive imports
+    new_imports = '''// Import pages
+import HomePage from './pages/HomePage'
+import JobsPage from './pages/JobsPage'
+import JobDetailsPage from './pages/JobDetailsPage'
+import AboutPage from './pages/AboutPage'
+import AboutUsPage from './pages/AboutUsPage'
+import ContactPage from './pages/ContactPage'
+import ContactUsPage from './pages/ContactUsPage'
+import SignInPage from './pages/SignInPage'
+import SignUpPage from './pages/SignUpPage'
+import StatusDashboard from './pages/StatusDashboard'
+import DashboardPage from './pages/DashboardPage'
+import ProfilePage from './pages/ProfilePage'
+import SavedJobsPage from './pages/SavedJobsPage'
+import MyApplicationsPage from './pages/MyApplicationsPage'
+import CompanyDashboard from './pages/CompanyDashboard'
+import CompanyPage from './pages/CompanyPage'
+import PostJobPage from './pages/PostJobPage'
+import ApplicationsPage from './pages/ApplicationsPage'
+import ForCompaniesPage from './pages/ForCompaniesPage'
+import ForRecruitersPage from './pages/ForRecruitersPage'
+import HelpCenterPage from './pages/HelpCenterPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsOfServicePage from './pages/TermsOfServicePage'
+import AdminLogin from './pages/AdminLogin'
+import AdminDashboard from './pages/AdminDashboard'
+import SuperAdminDashboard from './pages/SuperAdminDashboard' '''
+    
+    if old_imports in content:
+        content = content.replace(old_imports, new_imports)
+        
+        # Write back to file
+        with open(app_file, 'w') as f:
+            f.write(content)
+        
+        print("✅ Added missing page imports")
+        return True
+    else:
+        print("❌ Could not find import section to update")
+        return False
+
+def add_missing_routes():
+    """Add all missing routes to App.jsx"""
+    
+    app_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'hotgigs-frontend', 'src', 'App.jsx')
+    
+    # Read the current file
+    with open(app_file, 'r') as f:
+        content = f.read()
+    
+    # Find where to insert new routes (before authentication routes)
+    insertion_point = '''              {/* Authentication routes without navigation */}'''
+    
+    new_routes = '''              {/* Main Dashboard Route */}
+              <Route path="/dashboard" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Profile and User Management */}
+              <Route path="/profile" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Job Related Pages */}
+              <Route path="/jobs/:id" element={
+                <Layout>
+                  <JobDetailsPage />
+                </Layout>
+              } />
+
+              {/* Company Pages */}
+              <Route path="/companies/:id" element={
+                <Layout>
+                  <CompanyPage />
+                </Layout>
+              } />
+
+              <Route path="/for-companies" element={
+                <Layout>
+                  <ForCompaniesPage />
+                </Layout>
+              } />
+
+              <Route path="/for-recruiters" element={
+                <Layout>
+                  <ForRecruitersPage />
+                </Layout>
+              } />
+
+              {/* Support and Legal Pages */}
+              <Route path="/help" element={
+                <Layout>
+                  <HelpCenterPage />
+                </Layout>
+              } />
+
+              <Route path="/privacy" element={
+                <Layout>
+                  <PrivacyPolicyPage />
+                </Layout>
+              } />
+
+              <Route path="/terms" element={
+                <Layout>
+                  <TermsOfServicePage />
+                </Layout>
+              } />
+
+              <Route path="/about-us" element={
+                <Layout>
+                  <AboutUsPage />
+                </Layout>
+              } />
+
+              <Route path="/contact-us" element={
+                <Layout>
+                  <ContactUsPage />
+                </Layout>
+              } />
+
+              {/* Super Admin Route */}
+              <Route path="/super-admin" element={
+                <Layout>
+                  <ProtectedRoute requireAdmin={true}>
+                    <SuperAdminDashboard />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Authentication routes without navigation */}'''
+    
+    if insertion_point in content:
+        content = content.replace(insertion_point, new_routes)
+        
+        # Write back to file
+        with open(app_file, 'w') as f:
+            f.write(content)
+        
+        print("✅ Added missing routes")
+        return True
+    else:
+        print("❌ Could not find route insertion point")
+        return False
+
+def update_navbar_menu_items():
+    """Update Navbar to include links to main dashboard and other pages"""
+    
+    navbar_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'hotgigs-frontend', 'src', 'components', 'layout', 'Navbar.jsx')
+    
+    # Read the current file
+    with open(navbar_file, 'r') as f:
+        content = f.read()
+    
+    # Update role-based navigation items
+    old_role_items = '''  // Role-based navigation items
+  const roleBasedItems = []
+  if (isAuthenticated) {
+    if (userRole === 'candidate') {
+      roleBasedItems.push(
+        { label: 'My Applications', path: '/my-applications', icon: <User size={16} /> },
+        { label: 'Saved Jobs', path: '/saved-jobs', icon: <User size={16} /> }
+      )
+    } else if (userRole === 'company' || userRole === 'recruiter') {
+      roleBasedItems.push(
+        { label: 'Company Dashboard', path: '/company-dashboard', icon: <User size={16} /> },
+        { label: 'Post Job', path: '/post-job', icon: <User size={16} /> },
+        { label: 'My Jobs', path: '/my-jobs', icon: <User size={16} /> },
+        { label: 'Applications', path: '/applications', icon: <User size={16} /> }
+      )
+    }
+  }'''
+    
+    new_role_items = '''  // Role-based navigation items
+  const roleBasedItems = []
+  if (isAuthenticated) {
+    // Common authenticated items
+    roleBasedItems.push(
+      { label: 'Dashboard', path: '/dashboard', icon: <User size={16} /> },
+      { label: 'Profile', path: '/profile', icon: <User size={16} /> }
+    )
+    
+    if (userRole === 'candidate') {
+      roleBasedItems.push(
+        { label: 'My Applications', path: '/my-applications', icon: <User size={16} /> },
+        { label: 'Saved Jobs', path: '/saved-jobs', icon: <User size={16} /> }
+      )
+    } else if (userRole === 'company' || userRole === 'recruiter') {
+      roleBasedItems.push(
+        { label: 'Post Job', path: '/post-job', icon: <User size={16} /> },
+        { label: 'Applications', path: '/applications', icon: <User size={16} /> }
+      )
+    }
+  }'''
+    
+    if old_role_items in content:
+        content = content.replace(old_role_items, new_role_items)
+    
+    # Update navigation items to include more pages
+    old_nav_items = '''  const navigationItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Jobs', path: '/jobs' },
+    { label: 'About', path: '/about' },
+    { label: 'Contact', path: '/contact' },
+    { label: 'Status', path: '/status', icon: <Activity size={16} /> }
+  ]'''
+    
+    new_nav_items = '''  const navigationItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Jobs', path: '/jobs' },
+    { label: 'For Companies', path: '/for-companies' },
+    { label: 'For Recruiters', path: '/for-recruiters' },
+    { label: 'About', path: '/about' },
+    { label: 'Contact', path: '/contact' },
+    { label: 'Help', path: '/help' },
+    { label: 'Status', path: '/status', icon: <Activity size={16} /> }
+  ]'''
+    
+    if old_nav_items in content:
+        content = content.replace(old_nav_items, new_nav_items)
+        
+        # Write back to file
+        with open(navbar_file, 'w') as f:
+            f.write(content)
+        
+        print("✅ Updated Navbar menu items")
+        return True
+    else:
+        print("❌ Could not find navbar items to update")
+        return False
+
+def create_enhanced_job_details_page():
+    """Create a proper JobDetailsPage with AI-powered features"""
+    
+    job_details_content = '''import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { 
@@ -344,7 +623,7 @@ const JobDetailsPage = () => {
             <div className="job-section">
               <h3>Job Description</h3>
               <div className="job-description">
-                {job.description.split('\n').map((paragraph, index) => (
+                {job.description.split('\\n').map((paragraph, index) => (
                   <p key={index}>{paragraph}</p>
                 ))}
               </div>
@@ -916,4 +1195,65 @@ const JobDetailsPage = () => {
   )
 }
 
-export default JobDetailsPage
+export default JobDetailsPage'''
+    
+    frontend_pages_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'frontend', 'hotgigs-frontend', 'src', 'pages')
+    
+    with open(os.path.join(frontend_pages_dir, 'JobDetailsPage.jsx'), 'w') as f:
+        f.write(job_details_content)
+    
+    print("✅ Created enhanced JobDetailsPage with AI features")
+    return True
+
+def main():
+    """Main function to add all missing pages and routes"""
+    print("🔧 Adding All Missing Pages and Routes...")
+    print("=" * 60)
+    
+    success_count = 0
+    
+    # Add missing imports
+    if add_missing_imports():
+        success_count += 1
+    
+    # Add missing routes
+    if add_missing_routes():
+        success_count += 1
+    
+    # Update navbar menu items
+    if update_navbar_menu_items():
+        success_count += 1
+    
+    # Create enhanced job details page
+    if create_enhanced_job_details_page():
+        success_count += 1
+    
+    print("=" * 60)
+    if success_count == 4:
+        print("🎉 All missing pages and routes added successfully!")
+        print("\n📋 Added pages and routes:")
+        print("- DashboardPage (/dashboard) - Main user dashboard")
+        print("- ProfilePage (/profile) - User profile management")
+        print("- JobDetailsPage (/jobs/:id) - Enhanced job details with AI")
+        print("- CompanyPage (/companies/:id) - Company profiles")
+        print("- ForCompaniesPage (/for-companies) - Company landing")
+        print("- ForRecruitersPage (/for-recruiters) - Recruiter landing")
+        print("- HelpCenterPage (/help) - Support center")
+        print("- PrivacyPolicyPage (/privacy) - Privacy policy")
+        print("- TermsOfServicePage (/terms) - Terms of service")
+        print("- SuperAdminDashboard (/super-admin) - Super admin panel")
+        print("- Updated Navbar with Dashboard and Profile links")
+        print("\n🚀 Next steps:")
+        print("1. Restart your frontend development server")
+        print("2. Test the new /dashboard route for role-based dashboards")
+        print("3. Check /profile for user profile management")
+        print("4. Test job details pages with AI-powered insights")
+        print("5. Verify all menu items appear correctly")
+    else:
+        print(f"⚠️ Added {success_count}/4 features. Some manual fixes may be needed.")
+    
+    return success_count == 4
+
+if __name__ == "__main__":
+    main()
+

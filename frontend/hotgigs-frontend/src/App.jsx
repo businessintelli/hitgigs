@@ -6,18 +6,30 @@ import { AuthProvider } from './contexts/AuthContext'
 // Import pages
 import HomePage from './pages/HomePage'
 import JobsPage from './pages/JobsPage'
+import JobDetailsPage from './pages/JobDetailsPage'
 import AboutPage from './pages/AboutPage'
+import AboutUsPage from './pages/AboutUsPage'
 import ContactPage from './pages/ContactPage'
+import ContactUsPage from './pages/ContactUsPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import StatusDashboard from './pages/StatusDashboard'
+import DashboardPage from './pages/DashboardPage'
+import ProfilePage from './pages/ProfilePage'
 import SavedJobsPage from './pages/SavedJobsPage'
 import MyApplicationsPage from './pages/MyApplicationsPage'
 import CompanyDashboard from './pages/CompanyDashboard'
+import CompanyPage from './pages/CompanyPage'
 import PostJobPage from './pages/PostJobPage'
 import ApplicationsPage from './pages/ApplicationsPage'
+import ForCompaniesPage from './pages/ForCompaniesPage'
+import ForRecruitersPage from './pages/ForRecruitersPage'
+import HelpCenterPage from './pages/HelpCenterPage'
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
+import TermsOfServicePage from './pages/TermsOfServicePage'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
+import SuperAdminDashboard from './pages/SuperAdminDashboard'
 
 // Import components
 import Navbar from './components/layout/Navbar'
@@ -141,6 +153,90 @@ function App() {
                 <Layout>
                   <ProtectedRoute>
                     <ApplicationsPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Main Dashboard Route */}
+              <Route path="/dashboard" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Profile and User Management */}
+              <Route path="/profile" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              {/* Job Related Pages */}
+              <Route path="/jobs/:id" element={
+                <Layout>
+                  <JobDetailsPage />
+                </Layout>
+              } />
+
+              {/* Company Pages */}
+              <Route path="/companies/:id" element={
+                <Layout>
+                  <CompanyPage />
+                </Layout>
+              } />
+
+              <Route path="/for-companies" element={
+                <Layout>
+                  <ForCompaniesPage />
+                </Layout>
+              } />
+
+              <Route path="/for-recruiters" element={
+                <Layout>
+                  <ForRecruitersPage />
+                </Layout>
+              } />
+
+              {/* Support and Legal Pages */}
+              <Route path="/help" element={
+                <Layout>
+                  <HelpCenterPage />
+                </Layout>
+              } />
+
+              <Route path="/privacy" element={
+                <Layout>
+                  <PrivacyPolicyPage />
+                </Layout>
+              } />
+
+              <Route path="/terms" element={
+                <Layout>
+                  <TermsOfServicePage />
+                </Layout>
+              } />
+
+              <Route path="/about-us" element={
+                <Layout>
+                  <AboutUsPage />
+                </Layout>
+              } />
+
+              <Route path="/contact-us" element={
+                <Layout>
+                  <ContactUsPage />
+                </Layout>
+              } />
+
+              {/* Super Admin Route */}
+              <Route path="/super-admin" element={
+                <Layout>
+                  <ProtectedRoute requireAdmin={true}>
+                    <SuperAdminDashboard />
                   </ProtectedRoute>
                 </Layout>
               } />

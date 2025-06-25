@@ -35,14 +35,23 @@ const Navbar = () => {
   const navigationItems = [
     { label: 'Home', path: '/' },
     { label: 'Jobs', path: '/jobs' },
+    { label: 'For Companies', path: '/for-companies' },
+    { label: 'For Recruiters', path: '/for-recruiters' },
     { label: 'About', path: '/about' },
     { label: 'Contact', path: '/contact' },
+    { label: 'Help', path: '/help' },
     { label: 'Status', path: '/status', icon: <Activity size={16} /> }
   ]
 
   // Role-based navigation items
   const roleBasedItems = []
   if (isAuthenticated) {
+    // Common authenticated items
+    roleBasedItems.push(
+      { label: 'Dashboard', path: '/dashboard', icon: <User size={16} /> },
+      { label: 'Profile', path: '/profile', icon: <User size={16} /> }
+    )
+    
     if (userRole === 'candidate') {
       roleBasedItems.push(
         { label: 'My Applications', path: '/my-applications', icon: <User size={16} /> },
@@ -50,9 +59,7 @@ const Navbar = () => {
       )
     } else if (userRole === 'company' || userRole === 'recruiter') {
       roleBasedItems.push(
-        { label: 'Company Dashboard', path: '/company-dashboard', icon: <User size={16} /> },
         { label: 'Post Job', path: '/post-job', icon: <User size={16} /> },
-        { label: 'My Jobs', path: '/my-jobs', icon: <User size={16} /> },
         { label: 'Applications', path: '/applications', icon: <User size={16} /> }
       )
     }
