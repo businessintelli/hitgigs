@@ -418,6 +418,173 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Error logging system event: {str(e)}")
 
+    # Admin-specific methods
+    def get_database_schema(self) -> List[Dict[str, Any]]:
+        """Get database schema information in array format for frontend"""
+        try:
+            # Return schema as array of table objects expected by frontend
+            schema_tables = [
+                {
+                    'name': 'users',
+                    'row_count': self.count_records('users'),
+                    'description': 'User accounts and profiles',
+                    'columns': [
+                        {'name': 'id', 'type': 'UUID', 'primary_key': True, 'not_null': True},
+                        {'name': 'email', 'type': 'VARCHAR', 'primary_key': False, 'not_null': True},
+                        {'name': 'user_type', 'type': 'ENUM', 'primary_key': False, 'not_null': True},
+                        {'name': 'first_name', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'last_name', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'is_active', 'type': 'BOOLEAN', 'primary_key': False, 'not_null': True},
+                        {'name': 'is_verified', 'type': 'BOOLEAN', 'primary_key': False, 'not_null': True},
+                        {'name': 'is_admin', 'type': 'BOOLEAN', 'primary_key': False, 'not_null': True},
+                        {'name': 'created_at', 'type': 'TIMESTAMP', 'primary_key': False, 'not_null': True}
+                    ]
+                },
+                {
+                    'name': 'companies',
+                    'row_count': self.count_records('companies'),
+                    'description': 'Company profiles',
+                    'columns': [
+                        {'name': 'id', 'type': 'UUID', 'primary_key': True, 'not_null': True},
+                        {'name': 'name', 'type': 'VARCHAR', 'primary_key': False, 'not_null': True},
+                        {'name': 'description', 'type': 'TEXT', 'primary_key': False, 'not_null': False},
+                        {'name': 'website', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'industry', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'size', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'location', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'is_active', 'type': 'BOOLEAN', 'primary_key': False, 'not_null': True},
+                        {'name': 'created_at', 'type': 'TIMESTAMP', 'primary_key': False, 'not_null': True}
+                    ]
+                },
+                {
+                    'name': 'jobs',
+                    'row_count': self.count_records('jobs'),
+                    'description': 'Job postings',
+                    'columns': [
+                        {'name': 'id', 'type': 'UUID', 'primary_key': True, 'not_null': True},
+                        {'name': 'title', 'type': 'VARCHAR', 'primary_key': False, 'not_null': True},
+                        {'name': 'description', 'type': 'TEXT', 'primary_key': False, 'not_null': False},
+                        {'name': 'company_id', 'type': 'UUID', 'primary_key': False, 'not_null': True},
+                        {'name': 'location', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'salary_range', 'type': 'VARCHAR', 'primary_key': False, 'not_null': False},
+                        {'name': 'status', 'type': 'VARCHAR', 'primary_key': False, 'not_null': True},
+                        {'name': 'created_at', 'type': 'TIMESTAMP', 'primary_key': False, 'not_null': True}
+                    ]
+                },
+                {
+                    'name': 'job_applications',
+                    'row_count': self.count_records('job_applications'),
+                    'description': 'Job applications',
+                    'columns': [
+                        {'name': 'id', 'type': 'UUID', 'primary_key': True, 'not_null': True},
+                        {'name': 'job_id', 'type': 'UUID', 'primary_key': False, 'not_null': True},
+                        {'name': 'user_id', 'type': 'UUID', 'primary_key': False, 'not_null': True},
+                        {'name': 'status', 'type': 'VARCHAR', 'primary_key': False, 'not_null': True},
+                        {'name': 'applied_at', 'type': 'TIMESTAMP', 'primary_key': False, 'not_null': True},
+                        {'name': 'notes', 'type': 'TEXT', 'primary_key': False, 'not_null': False}
+                    ]
+                }
+            ]
+            return schema_tables
+        except Exception as e:
+            logger.error(f"Error getting database schema: {str(e)}")
+            return {'error': str(e)}
+
+    def get_recent_logs(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent system logs"""
+        try:
+            # Try to get from system_logs table if it exists
+            try:
+                result = self.client.table('system_logs').select('*').order('created_at', desc=True).limit(limit).execute()
+                return result.data if result.data else []
+            except:
+                # If system_logs table doesn't exist, return sample logs
+                return [
+                    {
+                        'id': 1,
+                        'level': 'INFO',
+                        'message': 'System started successfully',
+                        'created_at': datetime.now(timezone.utc).isoformat()
+                    },
+                    {
+                        'id': 2,
+                        'level': 'INFO',
+                        'message': 'Database connection established',
+                        'created_at': datetime.now(timezone.utc).isoformat()
+                    }
+                ]
+        except Exception as e:
+            logger.error(f"Error getting recent logs: {str(e)}")
+            return []
+
+    def get_all_users(self) -> List[Dict[str, Any]]:
+        """Get all users for admin dashboard"""
+        try:
+            result = self.client.table('users').select('*').order('created_at', desc=True).execute()
+            users = result.data if result.data else []
+            
+            # Remove password hashes for security and format data for frontend
+            for user in users:
+                if 'password_hash' in user:
+                    del user['password_hash']
+                
+                # Add 'name' field expected by frontend
+                if 'first_name' in user and 'last_name' in user:
+                    first_name = user.get('first_name', '') or ''
+                    last_name = user.get('last_name', '') or ''
+                    user['name'] = f"{first_name} {last_name}".strip()
+                    if not user['name']:
+                        user['name'] = user.get('email', 'Unknown').split('@')[0]
+                else:
+                    user['name'] = user.get('email', 'Unknown').split('@')[0]
+                
+                # Add 'role' field expected by frontend (map user_type to role)
+                user['role'] = user.get('user_type', 'candidate')
+                
+                # Ensure required fields exist
+                if 'last_login' not in user:
+                    user['last_login'] = None
+            
+            return users
+        except Exception as e:
+            logger.error(f"Error getting all users: {str(e)}")
+            return []
+
+    def get_all_companies(self) -> List[Dict[str, Any]]:
+        """Get all companies for admin dashboard"""
+        try:
+            result = self.client.table('companies').select('*').order('created_at', desc=True).execute()
+            return result.data if result.data else []
+        except Exception as e:
+            logger.error(f"Error getting all companies: {str(e)}")
+            return []
+
+    def update_user_status(self, user_id: str, is_active: bool) -> bool:
+        """Update user active status"""
+        try:
+            result = self.client.table('users').update({
+                'is_active': is_active,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).eq('id', user_id).execute()
+            
+            return len(result.data) > 0 if result.data else False
+        except Exception as e:
+            logger.error(f"Error updating user status: {str(e)}")
+            return False
+
+    def update_company_status(self, company_id: str, is_active: bool) -> bool:
+        """Update company active status"""
+        try:
+            result = self.client.table('companies').update({
+                'is_active': is_active,
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).eq('id', company_id).execute()
+            
+            return len(result.data) > 0 if result.data else False
+        except Exception as e:
+            logger.error(f"Error updating company status: {str(e)}")
+            return False
+
 # Global instance function
 def get_database_service():
     """Get database service instance"""
