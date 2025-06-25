@@ -178,12 +178,34 @@ class SupabaseManager:
         print(f"  URL: {self.supabase_url}")
         print(f"  Key: {self.supabase_anon_key[:50]}...")
         
-        # Create Supabase client
+        # Create Supabase client with error handling for version compatibility
         try:
+            print(f"🔗 Creating Supabase client...")
             self.supabase: Client = create_client(self.supabase_url, self.supabase_anon_key)
             print(f"✅ Supabase client created successfully!")
+        except TypeError as e:
+            if "proxy" in str(e):
+                print(f"⚠️ Supabase client creation failed due to version compatibility issue: {e}")
+                print(f"🔄 Trying alternative client creation method...")
+                try:
+                    # Try creating client with minimal options
+                    from supabase import Client as SupabaseClient
+                    self.supabase = SupabaseClient(self.supabase_url, self.supabase_anon_key)
+                    print(f"✅ Supabase client created with alternative method!")
+                except Exception as e2:
+                    print(f"❌ Alternative client creation also failed: {e2}")
+                    print(f"💡 Please try: pip install supabase==1.0.4")
+                    raise
+            else:
+                print(f"❌ Unexpected error creating Supabase client: {e}")
+                raise
         except Exception as e:
             print(f"❌ Error creating Supabase client: {e}")
+            print(f"💡 Troubleshooting steps:")
+            print(f"  1. Check your internet connection")
+            print(f"  2. Verify Supabase URL and key are correct")
+            print(f"  3. Try: pip install --upgrade supabase")
+            print(f"  4. Or try: pip install supabase==1.0.4")
             raise
         
         # Initialize database tables
