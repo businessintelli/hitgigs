@@ -5,6 +5,7 @@ Handles all database operations using Supabase Python client
 
 import os
 import logging
+import bcrypt
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timezone
 from supabase import create_client, Client
@@ -174,6 +175,46 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Error getting user by email: {str(e)}")
             raise
+    
+    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
+        """Authenticate user with email and password"""
+        try:
+            # Get user by email
+            user = self.get_user_by_email(email)
+            if not user:
+                logger.info(f"Authentication failed: User not found for email {email}")
+                return None
+            
+            # Check if user is active
+            if not user.get('is_active', True):
+                logger.info(f"Authentication failed: User {email} is not active")
+                return None
+            
+            # Verify password
+            stored_hash = user.get('password_hash')
+            if not stored_hash:
+                logger.error(f"Authentication failed: No password hash for user {email}")
+                return None
+            
+            # Check password using bcrypt
+            if isinstance(stored_hash, str):
+                stored_hash = stored_hash.encode('utf-8')
+            if isinstance(password, str):
+                password = password.encode('utf-8')
+            
+            if bcrypt.checkpw(password, stored_hash):
+                logger.info(f"Authentication successful for user {email}")
+                # Remove password hash from returned user data
+                user_data = user.copy()
+                user_data.pop('password_hash', None)
+                return user_data
+            else:
+                logger.info(f"Authentication failed: Invalid password for user {email}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error authenticating user {email}: {str(e)}")
+            return None
     
     def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get complete user profile with related data"""
