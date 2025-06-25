@@ -7,10 +7,78 @@ from typing import Optional, List, Dict, Any
 import hashlib
 from datetime import datetime
 
-# Load environment variables from project root
-project_root = Path(__file__).parent.parent.parent
+# Enhanced debugging for .env file loading
+def debug_env_loading():
+    """Debug function to show detailed .env loading information"""
+    print("🔍 DEBUG: Environment Loading Information")
+    print("=" * 50)
+    
+    # Show current working directory
+    current_dir = Path.cwd()
+    print(f"📁 Current working directory: {current_dir.absolute()}")
+    
+    # Show script location
+    script_dir = Path(__file__).parent
+    print(f"📄 Script directory: {script_dir.absolute()}")
+    
+    # Calculate project root (3 levels up from backend/hotgigs-api/src/database.py)
+    project_root = Path(__file__).parent.parent.parent
+    print(f"🏠 Calculated project root: {project_root.absolute()}")
+    
+    # Check for .env files in various locations
+    env_locations = [
+        project_root / '.env',
+        current_dir / '.env',
+        script_dir / '.env',
+        script_dir.parent / '.env',
+        script_dir.parent.parent / '.env'
+    ]
+    
+    print(f"\n🔍 Checking for .env files in these locations:")
+    for i, env_path in enumerate(env_locations, 1):
+        exists = env_path.exists()
+        print(f"  {i}. {env_path.absolute()} - {'✅ EXISTS' if exists else '❌ NOT FOUND'}")
+        if exists:
+            try:
+                with open(env_path, 'r') as f:
+                    content = f.read()
+                    has_supabase_url = 'SUPABASE_URL=' in content
+                    has_supabase_key = 'SUPABASE_ANON_KEY=' in content
+                    print(f"     📋 Contains SUPABASE_URL: {'✅' if has_supabase_url else '❌'}")
+                    print(f"     📋 Contains SUPABASE_ANON_KEY: {'✅' if has_supabase_key else '❌'}")
+            except Exception as e:
+                print(f"     ⚠️ Error reading file: {e}")
+    
+    return project_root
+
+# Load environment variables from project root with debugging
+print("🚀 Starting HotGigs.ai Database Configuration")
+project_root = debug_env_loading()
 env_path = project_root / '.env'
-load_dotenv(env_path)
+
+print(f"\n📂 Attempting to load .env from: {env_path.absolute()}")
+load_result = load_dotenv(env_path)
+print(f"📋 load_dotenv() result: {'✅ SUCCESS' if load_result else '❌ FAILED'}")
+
+# Check what environment variables are actually loaded
+print(f"\n🔍 Environment Variables Check:")
+supabase_url = os.getenv('SUPABASE_URL')
+supabase_anon_key = os.getenv('SUPABASE_ANON_KEY')
+supabase_service_role_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+
+print(f"  SUPABASE_URL: {'✅ FOUND' if supabase_url else '❌ NOT FOUND'}")
+if supabase_url:
+    print(f"    Value: {supabase_url[:50]}...")
+
+print(f"  SUPABASE_ANON_KEY: {'✅ FOUND' if supabase_anon_key else '❌ NOT FOUND'}")
+if supabase_anon_key:
+    print(f"    Value: {supabase_anon_key[:50]}...")
+
+print(f"  SUPABASE_SERVICE_ROLE_KEY: {'✅ FOUND' if supabase_service_role_key else '❌ NOT FOUND'}")
+if supabase_service_role_key:
+    print(f"    Value: {supabase_service_role_key[:50]}...")
+
+print("=" * 50)
 
 class SupabaseManager:
     def __init__(self):
@@ -19,11 +87,46 @@ class SupabaseManager:
         self.supabase_anon_key = os.getenv('SUPABASE_ANON_KEY')
         self.supabase_service_role_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
         
+        print(f"\n🔧 SupabaseManager Initialization:")
+        print(f"  Project root .env path: {env_path.absolute()}")
+        print(f"  .env file exists: {'✅' if env_path.exists() else '❌'}")
+        print(f"  SUPABASE_URL loaded: {'✅' if self.supabase_url else '❌'}")
+        print(f"  SUPABASE_ANON_KEY loaded: {'✅' if self.supabase_anon_key else '❌'}")
+        
         if not self.supabase_url or not self.supabase_anon_key:
-            raise ValueError("Missing Supabase configuration. Please check your .env file.")
+            error_msg = f"""
+❌ Missing Supabase configuration!
+
+🔍 Debugging Information:
+  • .env file path: {env_path.absolute()}
+  • .env file exists: {'✅' if env_path.exists() else '❌'}
+  • Current working directory: {Path.cwd().absolute()}
+  • Script location: {Path(__file__).absolute()}
+  
+📋 Environment Variables Status:
+  • SUPABASE_URL: {'✅ FOUND' if self.supabase_url else '❌ NOT FOUND'}
+  • SUPABASE_ANON_KEY: {'✅ FOUND' if self.supabase_anon_key else '❌ NOT FOUND'}
+
+🔧 To fix this issue:
+  1. Ensure your .env file exists at: {env_path.absolute()}
+  2. Verify it contains:
+     SUPABASE_URL=https://nrpvyjwnqvxipjmdjlim.supabase.co
+     SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+  3. Check file permissions and encoding
+"""
+            raise ValueError(error_msg)
+        
+        print(f"✅ Supabase configuration loaded successfully!")
+        print(f"  URL: {self.supabase_url}")
+        print(f"  Key: {self.supabase_anon_key[:50]}...")
         
         # Create Supabase client
-        self.supabase: Client = create_client(self.supabase_url, self.supabase_anon_key)
+        try:
+            self.supabase: Client = create_client(self.supabase_url, self.supabase_anon_key)
+            print(f"✅ Supabase client created successfully!")
+        except Exception as e:
+            print(f"❌ Error creating Supabase client: {e}")
+            raise
         
         # Initialize database tables
         self.init_database()
@@ -31,16 +134,20 @@ class SupabaseManager:
     def init_database(self):
         """Initialize database with required tables and sample data"""
         try:
+            print(f"\n🗄️ Initializing database...")
             # Check if tables exist by trying to fetch from users table
             result = self.supabase.table('users').select('id').limit(1).execute()
             
             # If we can query users table, check if we need sample data
             if not result.data:
+                print(f"📝 No users found, inserting sample data...")
                 self.insert_sample_data()
+            else:
+                print(f"✅ Database already has data ({len(result.data)} users found)")
             
-            print("Database initialized successfully")
+            print("✅ Database initialized successfully")
         except Exception as e:
-            print(f"Database initialization note: {e}")
+            print(f"⚠️ Database initialization note: {e}")
             # Tables might not exist yet - this is normal for a new Supabase project
     
     def insert_sample_data(self):
