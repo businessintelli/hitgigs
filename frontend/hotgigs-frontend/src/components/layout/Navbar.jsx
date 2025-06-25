@@ -71,7 +71,7 @@ const Navbar = () => {
             )}
             
             <button 
-              onClick={() => handleNavigation('/login')}
+              onClick={() => handleNavigation('/signin')}
               className="btn btn-primary"
             >
               Sign In
@@ -120,7 +120,7 @@ const Navbar = () => {
               )}
               
               <button 
-                onClick={() => handleNavigation('/login')}
+                onClick={() => handleNavigation('/signin')}
                 className="btn btn-primary mt-4"
               >
                 Sign In

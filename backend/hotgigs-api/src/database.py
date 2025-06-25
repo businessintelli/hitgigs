@@ -161,9 +161,58 @@ class SupabaseService:
             raise
     
     # User-specific operations
-    def create_user(self, user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Create a new user"""
-        return self.create_record('users', user_data)
+    def create_user(self, name: str = None, email: str = None, password: str = None, 
+                   role: str = "candidate", user_data: Dict[str, Any] = None) -> Optional[str]:
+        """Create a new user with individual parameters or user_data dict"""
+        try:
+            # If user_data is provided, use it directly
+            if user_data:
+                data = user_data.copy()
+            else:
+                # Build user data from individual parameters
+                data = {
+                    'email': email,
+                    'user_type': role,
+                    'is_active': True,
+                    'is_verified': True,
+                    'is_admin': False,
+                    'created_at': datetime.now(timezone.utc).isoformat(),
+                    'updated_at': datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Handle name field
+                if name:
+                    name_parts = name.split(' ', 1)
+                    data['first_name'] = name_parts[0]
+                    data['last_name'] = name_parts[1] if len(name_parts) > 1 else ''
+                else:
+                    data['first_name'] = email.split('@')[0] if email else 'User'
+                    data['last_name'] = ''
+                
+                # Hash password
+                if password:
+                    if isinstance(password, str):
+                        password = password.encode('utf-8')
+                    data['password_hash'] = bcrypt.hashpw(password, bcrypt.gensalt()).decode('utf-8')
+            
+            # Check if user already exists
+            existing_user = self.get_user_by_email(data['email'])
+            if existing_user:
+                logger.warning(f"User with email {data['email']} already exists")
+                return None
+            
+            # Create the user
+            result = self.create_record('users', data)
+            if result and 'id' in result:
+                logger.info(f"User created successfully: {data['email']}")
+                return result['id']
+            else:
+                logger.error(f"Failed to create user: {data['email']}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error creating user: {str(e)}")
+            return None
     
     def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
         """Get user by email"""
