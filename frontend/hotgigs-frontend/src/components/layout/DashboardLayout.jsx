@@ -18,14 +18,14 @@ import {
   Search,
   Bell,
   Heart,
-  Send,
   Calendar,
-  Target,
   Award,
+  Send,
+  Target,
   TrendingUp,
   DollarSign,
-  Eye,
-  MessageSquare,
+  Upload,
+  Zap,
   Shield,
   Database,
   Activity
@@ -74,7 +74,11 @@ const DashboardLayout = ({ children }) => {
           { id: 'applications', label: 'My Applications', icon: <FileText size={20} />, path: '/my-applications' },
           { id: 'saved-jobs', label: 'Saved Jobs', icon: <Heart size={20} />, path: '/saved-jobs' },
           { id: 'interviews', label: 'Interviews', icon: <Calendar size={20} />, path: '/interviews' },
-          { id: 'offers', label: 'Job Offers', icon: <Award size={20} />, path: '/offers' }
+          { id: 'offers', label: 'Job Offers', icon: <Award size={20} />, path: '/offers' },
+          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
+          { id: 'resume-analysis', label: 'Resume Analysis', icon: <FileText size={20} />, path: '/resume-analysis' },
+          { id: 'task-management', label: 'Tasks', icon: <Target size={20} />, path: '/task-management' },
+          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 
@@ -84,8 +88,12 @@ const DashboardLayout = ({ children }) => {
           { id: 'my-jobs', label: 'My Jobs', icon: <Briefcase size={20} />, path: '/my-jobs' },
           { id: 'applications', label: 'Applications', icon: <FileText size={20} />, path: '/applications' },
           { id: 'candidates', label: 'Candidates', icon: <Users size={20} />, path: '/candidates' },
+          { id: 'bulk-upload', label: 'Bulk Resume Upload', icon: <Upload size={20} />, path: '/bulk-resume-upload' },
+          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
+          { id: 'task-management', label: 'Task Management', icon: <Target size={20} />, path: '/task-management' },
           { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/analytics' },
-          { id: 'company-profile', label: 'Company Profile', icon: <Building size={20} />, path: '/company-profile' }
+          { id: 'company-profile', label: 'Company Profile', icon: <Building size={20} />, path: '/company-profile' },
+          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 
@@ -96,7 +104,12 @@ const DashboardLayout = ({ children }) => {
           { id: 'placements', label: 'Placements', icon: <Target size={20} />, path: '/placements' },
           { id: 'pipeline', label: 'Pipeline', icon: <TrendingUp size={20} />, path: '/pipeline' },
           { id: 'earnings', label: 'Earnings', icon: <DollarSign size={20} />, path: '/earnings' },
-          { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/analytics' }
+          { id: 'bulk-upload', label: 'Bulk Resume Upload', icon: <Upload size={20} />, path: '/bulk-resume-upload' },
+          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
+          { id: 'resume-analysis', label: 'Resume Analysis', icon: <FileText size={20} />, path: '/resume-analysis' },
+          { id: 'task-management', label: 'Task Management', icon: <Target size={20} />, path: '/task-management' },
+          { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/analytics' },
+          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 

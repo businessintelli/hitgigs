@@ -28,6 +28,13 @@ import HelpCenterPage from './pages/HelpCenterPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsOfServicePage from './pages/TermsOfServicePage'
 import AdminLogin from './pages/AdminLogin'
+
+// Import new advanced feature pages
+import AIAssistantPage from './pages/AIAssistantPage'
+import ResumeAnalysisPage from './pages/ResumeAnalysisPage'
+import BulkResumeUploadPage from './pages/BulkResumeUploadPage'
+import TaskManagementPage from './pages/TaskManagementPage'
+import PrivacySettingsPage from './pages/PrivacySettingsPage'
 import AdminDashboard from './pages/AdminDashboard'
 import SuperAdminDashboard from './pages/SuperAdminDashboard'
 
@@ -154,6 +161,47 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <ApplicationsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Advanced Feature Routes */}
+              <Route path="/ai-assistant" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AIAssistantPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/resume-analysis" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ResumeAnalysisPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/bulk-resume-upload" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <BulkResumeUploadPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/task-management" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <TaskManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/privacy-settings" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PrivacySettingsPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
