@@ -1,11 +1,26 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 const SignInPage = () => {
-  const [credentials, setCredentials] = useState({ email: '', password: '' })
-  const [error, setError] = useState('')
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  
   const navigate = useNavigate()
+  const { login } = useAuth()
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+    // Clear error when user starts typing
+    if (error) setError('')
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -18,64 +33,62 @@ const SignInPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(formData)
       })
 
       const data = await response.json()
 
-      if (response.ok) {
-        // Store user token and data
-        localStorage.setItem('userToken', data.token)
-        localStorage.setItem('userData', JSON.stringify(data.user))
-        
-        // Redirect based on user role
-        if (data.user.role === 'company') {
-          navigate('/company-dashboard')
-        } else if (data.user.role === 'recruiter') {
-          navigate('/recruiter-dashboard')
-        } else {
-          navigate('/user-dashboard')
-        }
-      } else {
-        setError(data.detail || 'Invalid credentials')
+      if (!response.ok) {
+        throw new Error(data.detail || 'Login failed')
       }
+
+      // Store token and user data
+      localStorage.setItem('authToken', data.token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+      
+      // Update auth context
+      if (login) {
+        login(data.user, data.token)
+      }
+
+      // Redirect to home page
+      navigate('/')
+      
     } catch (err) {
-      setError('Connection error. Please check if the backend is running.')
+      console.error('Login error:', err)
+      setError(err.message || 'Login failed. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSocialLogin = (provider) => {
-    // Placeholder for social login implementation
-    alert(`${provider} login will be implemented soon!`)
-  }
-
   return (
-    <div className="signin-container">
-      <div className="signin-card">
+    <div className="signin-page">
+      <div className="signin-container">
         <div className="signin-header">
           <h1>Welcome Back</h1>
           <p>Sign in to your HotGigs.ai account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="signin-form">
-          {error && (
-            <div className="error-message">
-              <span className="error-icon">⚠️</span>
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠️</span>
+            {error}
+          </div>
+        )}
 
+        <form onSubmit={handleSubmit} className="signin-form">
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
             <input
               type="email"
               id="email"
-              value={credentials.email}
-              onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-              placeholder="Enter your email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               required
+              placeholder="Enter your email"
+              disabled={loading}
             />
           </div>
 
@@ -84,28 +97,24 @@ const SignInPage = () => {
             <input
               type="password"
               id="password"
-              value={credentials.password}
-              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-              placeholder="Enter your password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               required
+              placeholder="Enter your password"
+              disabled={loading}
             />
           </div>
 
-          <div className="form-options">
-            <label className="remember-me">
-              <input type="checkbox" />
-              <span>Remember me</span>
-            </label>
-            <Link to="/forgot-password" className="forgot-password">
-              Forgot password?
-            </Link>
-          </div>
-
-          <button type="submit" disabled={loading} className="signin-btn">
+          <button 
+            type="submit" 
+            className="signin-button"
+            disabled={loading}
+          >
             {loading ? (
               <>
-                <span className="spinner"></span>
-                Signing in...
+                <span className="loading-spinner"></span>
+                Signing In...
               </>
             ) : (
               'Sign In'
@@ -113,66 +122,47 @@ const SignInPage = () => {
           </button>
         </form>
 
-        <div className="divider">
-          <span>or continue with</span>
-        </div>
-
-        <div className="social-login">
-          <button 
-            onClick={() => handleSocialLogin('Google')} 
-            className="social-btn google"
-          >
-            <span className="social-icon">🔍</span>
-            Google
-          </button>
-          <button 
-            onClick={() => handleSocialLogin('LinkedIn')} 
-            className="social-btn linkedin"
-          >
-            <span className="social-icon">💼</span>
-            LinkedIn
-          </button>
-          <button 
-            onClick={() => handleSocialLogin('GitHub')} 
-            className="social-btn github"
-          >
-            <span className="social-icon">🐙</span>
-            GitHub
-          </button>
-        </div>
-
         <div className="signin-footer">
           <p>
-            Don't have an account?{' '}
-            <Link to="/signup" className="signup-link">
-              Sign up for free
-            </Link>
+            Don't have an account? 
+            <Link to="/signup" className="signup-link">Sign Up</Link>
           </p>
-          <Link to="/" className="back-home">
-            ← Back to Home
-          </Link>
+          
+          <div className="demo-accounts">
+            <h3>Demo Accounts</h3>
+            <div className="demo-list">
+              <div className="demo-account">
+                <strong>Job Seeker:</strong> john@example.com / user123
+              </div>
+              <div className="demo-account">
+                <strong>Company:</strong> hr@techcorp.com / company123
+              </div>
+              <div className="demo-account">
+                <strong>Recruiter:</strong> alice@recruiter.com / recruiter123
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <style jsx>{`
-        .signin-container {
+        .signin-page {
           min-height: 100vh;
-          background: linear-gradient(135deg, #e0f2fe 0%, #e8f5e8 100%);
           display: flex;
           align-items: center;
           justify-content: center;
+          background: linear-gradient(135deg, #f0fdff 0%, #e0f7fa 100%);
           padding: 20px;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        .signin-card {
+        .signin-container {
           background: white;
           border-radius: 16px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
           padding: 40px;
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
           width: 100%;
-          max-width: 420px;
-          border: 1px solid #e5e7eb;
+          max-width: 400px;
         }
 
         .signin-header {
@@ -193,30 +183,45 @@ const SignInPage = () => {
           margin: 0;
         }
 
-        .signin-form {
+        .error-message {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 12px 16px;
+          border-radius: 8px;
           margin-bottom: 24px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+        }
+
+        .signin-form {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          margin-bottom: 32px;
         }
 
         .form-group {
-          margin-bottom: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
 
         .form-group label {
-          display: block;
-          font-weight: 600;
+          font-weight: 500;
           color: #374151;
-          margin-bottom: 8px;
           font-size: 14px;
         }
 
         .form-group input {
-          width: 100%;
           padding: 12px 16px;
-          border: 2px solid #e5e7eb;
+          border: 1px solid #d1d5db;
           border-radius: 8px;
           font-size: 16px;
-          transition: border-color 0.2s;
-          box-sizing: border-box;
+          transition: all 0.2s;
+          background: white;
         }
 
         .form-group input:focus {
@@ -225,54 +230,14 @@ const SignInPage = () => {
           box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
         }
 
-        .form-options {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
+        .form-group input:disabled {
+          background: #f9fafb;
+          color: #9ca3af;
+          cursor: not-allowed;
         }
 
-        .remember-me {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: #6b7280;
-          cursor: pointer;
-        }
-
-        .remember-me input {
-          width: auto;
-          margin: 0;
-        }
-
-        .forgot-password {
-          color: #06b6d4;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .forgot-password:hover {
-          text-decoration: underline;
-        }
-
-        .error-message {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          color: #dc2626;
-          padding: 12px 16px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-        }
-
-        .signin-btn {
-          width: 100%;
-          background: linear-gradient(135deg, #06b6d4, #0891b2);
+        .signin-button {
+          background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
           color: white;
           border: none;
           padding: 14px 24px;
@@ -287,115 +252,78 @@ const SignInPage = () => {
           gap: 8px;
         }
 
-        .signin-btn:hover:not(:disabled) {
+        .signin-button:hover:not(:disabled) {
+          background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
           transform: translateY(-1px);
-          box-shadow: 0 8px 16px rgba(6, 182, 212, 0.3);
         }
 
-        .signin-btn:disabled {
-          opacity: 0.7;
+        .signin-button:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
+          transform: none;
         }
 
-        .spinner {
+        .loading-spinner {
           width: 16px;
           height: 16px;
-          border: 2px solid transparent;
+          border: 2px solid rgba(255, 255, 255, 0.3);
           border-top: 2px solid white;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
 
-        .divider {
-          text-align: center;
-          margin: 24px 0;
-          position: relative;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .divider::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: #e5e7eb;
-          z-index: 1;
-        }
-
-        .divider span {
-          background: white;
-          padding: 0 16px;
-          position: relative;
-          z-index: 2;
-        }
-
-        .social-login {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 12px;
-          margin-bottom: 24px;
-        }
-
-        .social-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 16px 8px;
-          border: 2px solid #e5e7eb;
-          border-radius: 8px;
-          background: white;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-size: 12px;
-          font-weight: 500;
-          color: #374151;
-        }
-
-        .social-btn:hover {
-          border-color: #06b6d4;
-          background: #f0fdff;
-        }
-
-        .social-icon {
-          font-size: 20px;
-        }
-
         .signin-footer {
           text-align: center;
-          padding-top: 24px;
-          border-top: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 14px;
         }
 
         .signin-footer p {
-          margin: 0 0 16px 0;
-          color: #6b7280;
-          font-size: 14px;
+          margin: 0 0 24px 0;
         }
 
         .signup-link {
           color: #06b6d4;
           text-decoration: none;
-          font-weight: 600;
+          font-weight: 500;
+          margin-left: 4px;
         }
 
         .signup-link:hover {
           text-decoration: underline;
         }
 
-        .back-home {
-          color: #6b7280;
-          text-decoration: none;
-          font-size: 14px;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
+        .demo-accounts {
+          background: #f9fafb;
+          border-radius: 8px;
+          padding: 16px;
+          text-align: left;
         }
 
-        .back-home:hover {
+        .demo-accounts h3 {
+          font-size: 14px;
+          font-weight: 600;
+          color: #374151;
+          margin: 0 0 12px 0;
+          text-align: center;
+        }
+
+        .demo-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .demo-account {
+          font-size: 12px;
+          color: #6b7280;
+          padding: 6px 8px;
+          background: white;
+          border-radius: 4px;
+          border: 1px solid #e5e7eb;
+        }
+
+        .demo-account strong {
           color: #374151;
         }
 
@@ -404,17 +332,13 @@ const SignInPage = () => {
         }
 
         @media (max-width: 480px) {
-          .signin-card {
+          .signin-container {
             padding: 24px;
-            margin: 10px;
+            margin: 16px;
           }
           
           .signin-header h1 {
             font-size: 24px;
-          }
-          
-          .social-login {
-            grid-template-columns: 1fr;
           }
         }
       `}</style>

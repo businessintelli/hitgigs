@@ -3,94 +3,123 @@ import { useNavigate } from 'react-router-dom'
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview')
-  const [adminUser, setAdminUser] = useState(null)
-  const [stats, setStats] = useState({})
-  const [users, setUsers] = useState([])
-  const [companies, setCompanies] = useState([])
-  const [errors, setErrors] = useState([])
-  const [dbTables, setDbTables] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [adminData, setAdminData] = useState({
+    statistics: {},
+    users: [],
+    companies: [],
+    database_schema: [],
+    recent_logs: []
+  })
+  const [userFilter, setUserFilter] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
+  
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check admin authentication
+    loadAdminData()
+  }, [])
+
+  const getAuthHeaders = () => {
     const token = localStorage.getItem('adminToken')
-    const user = localStorage.getItem('adminUser')
-    
-    if (!token || !user) {
+    if (!token) {
       navigate('/admin/login')
-      return
+      return null
     }
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  }
 
-    setAdminUser(JSON.parse(user))
-    loadDashboardData()
-  }, [navigate])
-
-  const loadDashboardData = async () => {
+  const loadAdminData = async () => {
+    setLoading(true)
+    setError('')
+    
     try {
-      const token = localStorage.getItem('adminToken')
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+      const headers = getAuthHeaders()
+      if (!headers) return
 
-      // Load all admin data
-      const [statsRes, usersRes, companiesRes, errorsRes, tablesRes] = await Promise.all([
+      // Load statistics and database info
+      const [statsResponse, usersResponse, companiesResponse] = await Promise.all([
         fetch('http://localhost:8000/api/admin/stats', { headers }),
         fetch('http://localhost:8000/api/admin/users', { headers }),
-        fetch('http://localhost:8000/api/admin/companies', { headers }),
-        fetch('http://localhost:8000/api/admin/errors', { headers }),
-        fetch('http://localhost:8000/api/admin/database/tables', { headers })
+        fetch('http://localhost:8000/api/admin/companies', { headers })
       ])
 
-      if (statsRes.ok) setStats(await statsRes.json())
-      if (usersRes.ok) setUsers((await usersRes.json()).users || [])
-      if (companiesRes.ok) setCompanies((await companiesRes.json()).companies || [])
-      if (errorsRes.ok) setErrors((await errorsRes.json()).errors || [])
-      if (tablesRes.ok) setDbTables((await tablesRes.json()).tables || [])
+      if (!statsResponse.ok || !usersResponse.ok || !companiesResponse.ok) {
+        throw new Error('Failed to load admin data')
+      }
 
-    } catch (error) {
-      console.error('Failed to load admin data:', error)
+      const [statsData, usersData, companiesData] = await Promise.all([
+        statsResponse.json(),
+        usersResponse.json(),
+        companiesResponse.json()
+      ])
+
+      setAdminData({
+        statistics: statsData.statistics || {},
+        database_schema: statsData.database_schema || [],
+        recent_logs: statsData.recent_logs || [],
+        users: usersData.users || [],
+        companies: companiesData.companies || []
+      })
+    } catch (err) {
+      setError('Failed to load admin data: ' + err.message)
+      console.error('Admin data loading error:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleUserAction = async (userId, action) => {
+  const handleUserStatusChange = async (userId, isActive) => {
     try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const headers = getAuthHeaders()
+      if (!headers) return
+
+      const response = await fetch(`http://localhost:8000/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ is_active: isActive })
       })
 
-      if (response.ok) {
-        loadDashboardData() // Reload data
+      if (!response.ok) {
+        throw new Error('Failed to update user status')
       }
-    } catch (error) {
-      console.error(`Failed to ${action} user:`, error)
+
+      // Reload data
+      await loadAdminData()
+      
+      const action = isActive ? 'enabled' : 'disabled'
+      alert(`User ${action} successfully`)
+    } catch (err) {
+      alert('Failed to update user status: ' + err.message)
     }
   }
 
-  const handleCompanyAction = async (companyId, action) => {
+  const handleCompanyStatusChange = async (companyId, isActive) => {
     try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:8000/api/admin/companies/${companyId}/${action}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const headers = getAuthHeaders()
+      if (!headers) return
+
+      const response = await fetch(`http://localhost:8000/api/admin/companies/${companyId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ is_active: isActive })
       })
 
-      if (response.ok) {
-        loadDashboardData() // Reload data
+      if (!response.ok) {
+        throw new Error('Failed to update company status')
       }
-    } catch (error) {
-      console.error(`Failed to ${action} company:`, error)
+
+      // Reload data
+      await loadAdminData()
+      
+      const action = isActive ? 'enabled' : 'disabled'
+      alert(`Company ${action} successfully`)
+    } catch (err) {
+      alert('Failed to update company status: ' + err.message)
     }
   }
 
@@ -99,6 +128,13 @@ const AdminDashboard = () => {
     localStorage.removeItem('adminUser')
     navigate('/admin/login')
   }
+
+  const filteredUsers = adminData.users.filter(user => {
+    const matchesFilter = userFilter === 'all' || user.role === userFilter
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    return matchesFilter && matchesSearch
+  })
 
   if (loading) {
     return (
@@ -113,15 +149,26 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       {/* Header */}
       <header className="admin-header">
-        <div className="admin-header-left">
-          <h1>🛡️ Super Admin Dashboard</h1>
-          <span className="admin-subtitle">HotGigs.ai Management Portal</span>
-        </div>
-        <div className="admin-header-right">
-          <span className="admin-user">Welcome, {adminUser?.name}</span>
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        <div className="header-content">
+          <h1>🛡️ HotGigs.ai Admin Dashboard</h1>
+          <div className="header-actions">
+            <button onClick={() => loadAdminData()} className="refresh-btn">
+              🔄 Refresh
+            </button>
+            <button onClick={handleLogout} className="logout-btn">
+              🚪 Logout
+            </button>
+          </div>
         </div>
       </header>
+
+      {error && (
+        <div className="error-banner">
+          <span className="error-icon">⚠️</span>
+          {error}
+          <button onClick={() => setError('')} className="close-error">×</button>
+        </div>
+      )}
 
       {/* Navigation Tabs */}
       <nav className="admin-nav">
@@ -135,19 +182,13 @@ const AdminDashboard = () => {
           className={`nav-tab ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 Users
+          👥 Users ({adminData.users.length})
         </button>
         <button 
           className={`nav-tab ${activeTab === 'companies' ? 'active' : ''}`}
           onClick={() => setActiveTab('companies')}
         >
-          🏢 Companies
-        </button>
-        <button 
-          className={`nav-tab ${activeTab === 'errors' ? 'active' : ''}`}
-          onClick={() => setActiveTab('errors')}
-        >
-          🚨 Errors
+          🏢 Companies ({adminData.companies.length})
         </button>
         <button 
           className={`nav-tab ${activeTab === 'database' ? 'active' : ''}`}
@@ -156,132 +197,152 @@ const AdminDashboard = () => {
           🗄️ Database
         </button>
         <button 
-          className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
+          className={`nav-tab ${activeTab === 'logs' ? 'active' : ''}`}
+          onClick={() => setActiveTab('logs')}
         >
-          ⚙️ Settings
+          📝 System Logs
         </button>
       </nav>
 
       {/* Content */}
       <main className="admin-content">
         {activeTab === 'overview' && (
-          <div className="overview-tab">
+          <div className="overview-section">
+            <h2>System Overview</h2>
+            
             <div className="stats-grid">
               <div className="stat-card">
                 <div className="stat-icon">👥</div>
                 <div className="stat-info">
-                  <h3>{stats.total_users || 0}</h3>
-                  <p>Total Users</p>
+                  <h3>Total Users</h3>
+                  <p className="stat-number">{adminData.statistics.total_users || 0}</p>
+                  <span className="stat-detail">
+                    {adminData.statistics.active_users || 0} active
+                  </span>
                 </div>
               </div>
+              
               <div className="stat-card">
                 <div className="stat-icon">🏢</div>
                 <div className="stat-info">
-                  <h3>{stats.total_companies || 0}</h3>
-                  <p>Companies</p>
+                  <h3>Companies</h3>
+                  <p className="stat-number">{adminData.statistics.total_companies || 0}</p>
+                  <span className="stat-detail">
+                    {adminData.statistics.active_companies || 0} active
+                  </span>
                 </div>
               </div>
+              
               <div className="stat-card">
                 <div className="stat-icon">💼</div>
                 <div className="stat-info">
-                  <h3>{stats.total_jobs || 0}</h3>
-                  <p>Active Jobs</p>
+                  <h3>Job Listings</h3>
+                  <p className="stat-number">{adminData.statistics.total_jobs || 0}</p>
+                  <span className="stat-detail">
+                    {adminData.statistics.active_jobs || 0} active
+                  </span>
                 </div>
               </div>
+              
               <div className="stat-card">
-                <div className="stat-icon">📝</div>
+                <div className="stat-icon">📄</div>
                 <div className="stat-info">
-                  <h3>{stats.total_applications || 0}</h3>
-                  <p>Applications</p>
+                  <h3>Applications</h3>
+                  <p className="stat-number">{adminData.statistics.total_applications || 0}</p>
+                  <span className="stat-detail">Total submitted</span>
                 </div>
               </div>
             </div>
 
-            <div className="system-health">
-              <h2>System Health</h2>
-              <div className="health-metrics">
-                <div className="metric">
-                  <span className="metric-label">Uptime:</span>
-                  <span className="metric-value">{stats.system_uptime || '99.9%'}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Response Time:</span>
-                  <span className="metric-value">{stats.avg_response_time || '120ms'}</span>
-                </div>
-                <div className="metric">
-                  <span className="metric-label">Error Rate:</span>
-                  <span className="metric-value">{stats.error_rate || '0.1%'}</span>
-                </div>
+            <div className="recent-activity">
+              <h3>Recent System Activity</h3>
+              <div className="activity-list">
+                {adminData.recent_logs.slice(0, 5).map((log, index) => (
+                  <div key={index} className="activity-item">
+                    <span className={`activity-level ${log.level.toLowerCase()}`}>
+                      {log.level}
+                    </span>
+                    <span className="activity-message">{log.message}</span>
+                    <span className="activity-time">
+                      {new Date(log.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
         {activeTab === 'users' && (
-          <div className="users-tab">
-            <div className="tab-header">
+          <div className="users-section">
+            <div className="section-header">
               <h2>User Management</h2>
-              <div className="user-stats">
-                <span>Total: {users.length}</span>
-                <span>Active: {users.filter(u => u.status === 'active').length}</span>
-                <span>Suspended: {users.filter(u => u.status === 'suspended').length}</span>
+              <div className="section-controls">
+                <select 
+                  value={userFilter} 
+                  onChange={(e) => setUserFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Users</option>
+                  <option value="user">Job Seekers</option>
+                  <option value="company">Companies</option>
+                  <option value="recruiter">Recruiters</option>
+                  <option value="admin">Admins</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
               </div>
             </div>
-            
+
             <div className="users-table">
               <table>
                 <thead>
                   <tr>
-                    <th>User</th>
+                    <th>ID</th>
+                    <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
                     <th>Status</th>
+                    <th>Created</th>
                     <th>Last Login</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map(user => (
+                  {filteredUsers.map(user => (
                     <tr key={user.id}>
-                      <td>
-                        <div className="user-info">
-                          <div className="user-avatar">{user.name?.[0]?.toUpperCase()}</div>
-                          <span>{user.name}</span>
-                        </div>
-                      </td>
+                      <td>{user.id}</td>
+                      <td>{user.name}</td>
                       <td>{user.email}</td>
                       <td>
-                        <span className={`role-badge ${user.role}`}>{user.role}</span>
+                        <span className={`role-badge ${user.role}`}>
+                          {user.role}
+                        </span>
                       </td>
                       <td>
-                        <span className={`status-badge ${user.status}`}>{user.status}</span>
+                        <span className={`status-badge ${user.is_active ? 'active' : 'inactive'}`}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
-                      <td>{user.last_login || 'Never'}</td>
+                      <td>{new Date(user.created_at).toLocaleDateString()}</td>
                       <td>
-                        <div className="action-buttons">
-                          {user.status === 'active' ? (
-                            <button 
-                              onClick={() => handleUserAction(user.id, 'suspend')}
-                              className="action-btn suspend"
-                            >
-                              Suspend
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => handleUserAction(user.id, 'activate')}
-                              className="action-btn activate"
-                            >
-                              Activate
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleUserAction(user.id, 'delete')}
-                            className="action-btn delete"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        {user.last_login 
+                          ? new Date(user.last_login).toLocaleDateString()
+                          : 'Never'
+                        }
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => handleUserStatusChange(user.id, !user.is_active)}
+                          className={`action-btn ${user.is_active ? 'disable' : 'enable'}`}
+                        >
+                          {user.is_active ? 'Disable' : 'Enable'}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -292,67 +353,50 @@ const AdminDashboard = () => {
         )}
 
         {activeTab === 'companies' && (
-          <div className="companies-tab">
-            <div className="tab-header">
-              <h2>Company Management</h2>
-              <div className="company-stats">
-                <span>Total: {companies.length}</span>
-                <span>Active: {companies.filter(c => c.status === 'active').length}</span>
-                <span>Suspended: {companies.filter(c => c.status === 'suspended').length}</span>
-              </div>
-            </div>
+          <div className="companies-section">
+            <h2>Company Management</h2>
             
             <div className="companies-table">
               <table>
                 <thead>
                   <tr>
-                    <th>Company</th>
-                    <th>Industry</th>
-                    <th>Size</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Website</th>
                     <th>Status</th>
-                    <th>Jobs Posted</th>
+                    <th>Created</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {companies.map(company => (
+                  {adminData.companies.map(company => (
                     <tr key={company.id}>
+                      <td>{company.id}</td>
+                      <td>{company.name}</td>
+                      <td>{company.email}</td>
                       <td>
-                        <div className="company-info">
-                          <div className="company-logo">{company.name?.[0]?.toUpperCase()}</div>
-                          <span>{company.name}</span>
-                        </div>
+                        {company.website ? (
+                          <a href={company.website} target="_blank" rel="noopener noreferrer">
+                            {company.website}
+                          </a>
+                        ) : (
+                          'N/A'
+                        )}
                       </td>
-                      <td>{company.industry}</td>
-                      <td>{company.size}</td>
                       <td>
-                        <span className={`status-badge ${company.status}`}>{company.status}</span>
+                        <span className={`status-badge ${company.is_active ? 'active' : 'inactive'}`}>
+                          {company.is_active ? 'Active' : 'Inactive'}
+                        </span>
                       </td>
-                      <td>{company.jobs_count || 0}</td>
+                      <td>{new Date(company.created_at).toLocaleDateString()}</td>
                       <td>
-                        <div className="action-buttons">
-                          {company.status === 'active' ? (
-                            <button 
-                              onClick={() => handleCompanyAction(company.id, 'suspend')}
-                              className="action-btn suspend"
-                            >
-                              Suspend
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => handleCompanyAction(company.id, 'activate')}
-                              className="action-btn activate"
-                            >
-                              Activate
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => handleCompanyAction(company.id, 'delete')}
-                            className="action-btn delete"
-                          >
-                            Delete
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => handleCompanyStatusChange(company.id, !company.is_active)}
+                          className={`action-btn ${company.is_active ? 'disable' : 'enable'}`}
+                        >
+                          {company.is_active ? 'Disable' : 'Enable'}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -362,60 +406,42 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'errors' && (
-          <div className="errors-tab">
-            <div className="tab-header">
-              <h2>Application Errors</h2>
-              <div className="error-stats">
-                <span>Total: {errors.length}</span>
-                <span>Critical: {errors.filter(e => e.level === 'critical').length}</span>
-                <span>Warnings: {errors.filter(e => e.level === 'warning').length}</span>
-              </div>
-            </div>
-            
-            <div className="errors-list">
-              {errors.map(error => (
-                <div key={error.id} className={`error-item ${error.level}`}>
-                  <div className="error-header">
-                    <span className="error-level">{error.level.toUpperCase()}</span>
-                    <span className="error-time">{error.timestamp}</span>
-                  </div>
-                  <div className="error-message">{error.message}</div>
-                  <div className="error-details">
-                    <span>File: {error.file}</span>
-                    <span>Line: {error.line}</span>
-                    <span>User: {error.user_id || 'Anonymous'}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {activeTab === 'database' && (
-          <div className="database-tab">
-            <div className="tab-header">
-              <h2>Database Structure</h2>
-              <div className="db-stats">
-                <span>Tables: {dbTables.length}</span>
-                <span>Total Records: {dbTables.reduce((sum, table) => sum + (table.row_count || 0), 0)}</span>
-              </div>
-            </div>
+          <div className="database-section">
+            <h2>Database Structure</h2>
             
-            <div className="tables-grid">
-              {dbTables.map(table => (
-                <div key={table.name} className="table-card">
+            <div className="database-tables">
+              {adminData.database_schema.map(table => (
+                <div key={table.name} className="table-info">
                   <div className="table-header">
-                    <h3>{table.name}</h3>
-                    <span className="table-count">{table.row_count || 0} rows</span>
+                    <h3>📋 {table.name}</h3>
+                    <span className="row-count">{table.row_count} rows</span>
                   </div>
+                  
                   <div className="table-columns">
-                    {table.columns?.map(column => (
-                      <div key={column.name} className="column-item">
-                        <span className="column-name">{column.name}</span>
-                        <span className="column-type">{column.type}</span>
-                      </div>
-                    ))}
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Column</th>
+                          <th>Type</th>
+                          <th>Constraints</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {table.columns.map((column, index) => (
+                          <tr key={index}>
+                            <td>
+                              <strong>{column.name}</strong>
+                              {column.primary_key && <span className="pk-badge">PK</span>}
+                            </td>
+                            <td>{column.type}</td>
+                            <td>
+                              {column.not_null && <span className="constraint">NOT NULL</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ))}
@@ -423,40 +449,28 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'settings' && (
-          <div className="settings-tab">
-            <div className="tab-header">
-              <h2>System Settings</h2>
-            </div>
+        {activeTab === 'logs' && (
+          <div className="logs-section">
+            <h2>System Logs</h2>
             
-            <div className="settings-sections">
-              <div className="settings-section">
-                <h3>Application Settings</h3>
-                <div className="setting-item">
-                  <label>Maintenance Mode</label>
-                  <button className="toggle-btn">Disabled</button>
+            <div className="logs-list">
+              {adminData.recent_logs.map((log, index) => (
+                <div key={index} className={`log-entry ${log.level.toLowerCase()}`}>
+                  <div className="log-header">
+                    <span className="log-level">{log.level}</span>
+                    <span className="log-time">
+                      {new Date(log.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="log-message">{log.message}</div>
+                  {log.details && (
+                    <div className="log-details">{log.details}</div>
+                  )}
+                  {log.user_name && (
+                    <div className="log-user">User: {log.user_name}</div>
+                  )}
                 </div>
-                <div className="setting-item">
-                  <label>User Registration</label>
-                  <button className="toggle-btn active">Enabled</button>
-                </div>
-                <div className="setting-item">
-                  <label>Email Notifications</label>
-                  <button className="toggle-btn active">Enabled</button>
-                </div>
-              </div>
-
-              <div className="settings-section">
-                <h3>Security Settings</h3>
-                <div className="setting-item">
-                  <label>Two-Factor Authentication</label>
-                  <button className="toggle-btn">Disabled</button>
-                </div>
-                <div className="setting-item">
-                  <label>Session Timeout (minutes)</label>
-                  <input type="number" value="30" className="setting-input" />
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
@@ -482,7 +496,7 @@ const AdminDashboard = () => {
           width: 40px;
           height: 40px;
           border: 4px solid #e5e7eb;
-          border-top: 4px solid #3b82f6;
+          border-top: 4px solid #06b6d4;
           border-radius: 50%;
           animation: spin 1s linear infinite;
         }
@@ -491,42 +505,72 @@ const AdminDashboard = () => {
           background: white;
           border-bottom: 1px solid #e5e7eb;
           padding: 16px 24px;
+        }
+
+        .header-content {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          max-width: 1400px;
+          margin: 0 auto;
         }
 
-        .admin-header h1 {
+        .header-content h1 {
           font-size: 24px;
           font-weight: 700;
           color: #1f2937;
           margin: 0;
         }
 
-        .admin-subtitle {
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .admin-header-right {
+        .header-actions {
           display: flex;
-          align-items: center;
-          gap: 16px;
+          gap: 12px;
         }
 
-        .admin-user {
-          color: #374151;
+        .refresh-btn, .logout-btn {
+          padding: 8px 16px;
+          border-radius: 6px;
           font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: none;
+        }
+
+        .refresh-btn {
+          background: #f3f4f6;
+          color: #374151;
+        }
+
+        .refresh-btn:hover {
+          background: #e5e7eb;
         }
 
         .logout-btn {
-          background: #ef4444;
+          background: #dc2626;
           color: white;
+        }
+
+        .logout-btn:hover {
+          background: #b91c1c;
+        }
+
+        .error-banner {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 12px 24px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .close-error {
+          margin-left: auto;
+          background: none;
           border: none;
-          padding: 8px 16px;
-          border-radius: 6px;
+          font-size: 18px;
           cursor: pointer;
-          font-weight: 500;
+          color: #dc2626;
         }
 
         .admin-nav {
@@ -534,26 +578,35 @@ const AdminDashboard = () => {
           border-bottom: 1px solid #e5e7eb;
           padding: 0 24px;
           display: flex;
-          gap: 8px;
+          gap: 0;
+          max-width: 1400px;
+          margin: 0 auto;
         }
 
         .nav-tab {
-          background: none;
-          border: none;
           padding: 16px 20px;
-          cursor: pointer;
-          font-weight: 500;
+          border: none;
+          background: none;
           color: #6b7280;
+          font-weight: 500;
+          cursor: pointer;
           border-bottom: 2px solid transparent;
           transition: all 0.2s;
         }
 
+        .nav-tab:hover {
+          color: #374151;
+          background: #f9fafb;
+        }
+
         .nav-tab.active {
-          color: #3b82f6;
-          border-bottom-color: #3b82f6;
+          color: #06b6d4;
+          border-bottom-color: #06b6d4;
         }
 
         .admin-content {
+          max-width: 1400px;
+          margin: 0 auto;
           padding: 24px;
         }
 
@@ -578,76 +631,118 @@ const AdminDashboard = () => {
           font-size: 32px;
           width: 60px;
           height: 60px;
-          background: #f3f4f6;
-          border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
+          background: #f0fdff;
+          border-radius: 12px;
         }
 
         .stat-info h3 {
+          font-size: 14px;
+          font-weight: 500;
+          color: #6b7280;
+          margin: 0 0 4px 0;
+        }
+
+        .stat-number {
           font-size: 28px;
           font-weight: 700;
           color: #1f2937;
-          margin: 0;
+          margin: 0 0 4px 0;
         }
 
-        .stat-info p {
-          color: #6b7280;
-          margin: 4px 0 0 0;
+        .stat-detail {
+          font-size: 12px;
+          color: #9ca3af;
         }
 
-        .system-health {
+        .recent-activity {
           background: white;
           border-radius: 12px;
           padding: 24px;
           border: 1px solid #e5e7eb;
         }
 
-        .system-health h2 {
+        .recent-activity h3 {
           margin: 0 0 16px 0;
-          color: #1f2937;
-        }
-
-        .health-metrics {
-          display: flex;
-          gap: 32px;
-        }
-
-        .metric {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .metric-label {
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .metric-value {
+          font-size: 18px;
           font-weight: 600;
           color: #1f2937;
-          font-size: 18px;
         }
 
-        .tab-header {
+        .activity-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .activity-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: #f9fafb;
+          border-radius: 8px;
+        }
+
+        .activity-level {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 12px;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+
+        .activity-level.info {
+          background: #dbeafe;
+          color: #1e40af;
+        }
+
+        .activity-level.error {
+          background: #fef2f2;
+          color: #dc2626;
+        }
+
+        .activity-message {
+          flex: 1;
+          font-size: 14px;
+          color: #374151;
+        }
+
+        .activity-time {
+          font-size: 12px;
+          color: #9ca3af;
+        }
+
+        .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
           margin-bottom: 24px;
         }
 
-        .tab-header h2 {
-          margin: 0;
+        .section-header h2 {
+          font-size: 20px;
+          font-weight: 600;
           color: #1f2937;
+          margin: 0;
         }
 
-        .user-stats, .company-stats, .error-stats, .db-stats {
+        .section-controls {
           display: flex;
-          gap: 16px;
-          color: #6b7280;
+          gap: 12px;
+        }
+
+        .filter-select, .search-input {
+          padding: 8px 12px;
+          border: 1px solid #d1d5db;
+          border-radius: 6px;
           font-size: 14px;
+        }
+
+        .search-input {
+          width: 200px;
         }
 
         .users-table, .companies-table {
@@ -657,40 +752,28 @@ const AdminDashboard = () => {
           overflow: hidden;
         }
 
-        table {
+        .users-table table, .companies-table table {
           width: 100%;
           border-collapse: collapse;
         }
 
-        th, td {
-          padding: 16px;
+        .users-table th, .companies-table th,
+        .users-table td, .companies-table td {
+          padding: 12px 16px;
           text-align: left;
           border-bottom: 1px solid #f3f4f6;
         }
 
-        th {
+        .users-table th, .companies-table th {
           background: #f9fafb;
           font-weight: 600;
           color: #374151;
-        }
-
-        .user-info, .company-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .user-avatar, .company-logo {
-          width: 32px;
-          height: 32px;
-          background: #3b82f6;
-          color: white;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 600;
           font-size: 14px;
+        }
+
+        .users-table td, .companies-table td {
+          font-size: 14px;
+          color: #6b7280;
         }
 
         .role-badge, .status-badge {
@@ -698,185 +781,195 @@ const AdminDashboard = () => {
           border-radius: 4px;
           font-size: 12px;
           font-weight: 500;
+          text-transform: capitalize;
         }
 
-        .role-badge.admin { background: #fef3c7; color: #92400e; }
-        .role-badge.user { background: #dbeafe; color: #1e40af; }
-        .role-badge.company { background: #d1fae5; color: #065f46; }
+        .role-badge.user {
+          background: #dbeafe;
+          color: #1e40af;
+        }
 
-        .status-badge.active { background: #d1fae5; color: #065f46; }
-        .status-badge.suspended { background: #fee2e2; color: #dc2626; }
+        .role-badge.company {
+          background: #d1fae5;
+          color: #065f46;
+        }
 
-        .action-buttons {
-          display: flex;
-          gap: 8px;
+        .role-badge.recruiter {
+          background: #fef3c7;
+          color: #92400e;
+        }
+
+        .role-badge.admin {
+          background: #fce7f3;
+          color: #be185d;
+        }
+
+        .status-badge.active {
+          background: #d1fae5;
+          color: #065f46;
+        }
+
+        .status-badge.inactive {
+          background: #fee2e2;
+          color: #dc2626;
         }
 
         .action-btn {
           padding: 6px 12px;
-          border: none;
           border-radius: 4px;
           font-size: 12px;
-          cursor: pointer;
           font-weight: 500;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s;
         }
 
-        .action-btn.activate { background: #d1fae5; color: #065f46; }
-        .action-btn.suspend { background: #fef3c7; color: #92400e; }
-        .action-btn.delete { background: #fee2e2; color: #dc2626; }
+        .action-btn.enable {
+          background: #d1fae5;
+          color: #065f46;
+        }
 
-        .errors-list {
+        .action-btn.disable {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+
+        .action-btn:hover {
+          opacity: 0.8;
+        }
+
+        .database-tables {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 24px;
         }
 
-        .error-item {
+        .table-info {
           background: white;
-          border-radius: 8px;
-          padding: 16px;
-          border-left: 4px solid #6b7280;
-        }
-
-        .error-item.critical { border-left-color: #dc2626; }
-        .error-item.warning { border-left-color: #f59e0b; }
-
-        .error-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 8px;
-        }
-
-        .error-level {
-          font-weight: 600;
-          font-size: 12px;
-        }
-
-        .error-time {
-          color: #6b7280;
-          font-size: 12px;
-        }
-
-        .error-message {
-          color: #1f2937;
-          margin-bottom: 8px;
-        }
-
-        .error-details {
-          display: flex;
-          gap: 16px;
-          color: #6b7280;
-          font-size: 12px;
-        }
-
-        .tables-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 20px;
-        }
-
-        .table-card {
-          background: white;
-          border-radius: 8px;
+          border-radius: 12px;
           border: 1px solid #e5e7eb;
-          padding: 16px;
+          overflow: hidden;
         }
 
         .table-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
-          padding-bottom: 12px;
-          border-bottom: 1px solid #f3f4f6;
+          padding: 16px 20px;
+          background: #f9fafb;
+          border-bottom: 1px solid #e5e7eb;
         }
 
         .table-header h3 {
           margin: 0;
+          font-size: 16px;
+          font-weight: 600;
           color: #1f2937;
         }
 
-        .table-count {
+        .row-count {
+          font-size: 14px;
           color: #6b7280;
-          font-size: 12px;
-        }
-
-        .table-columns {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .column-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px;
-          background: #f9fafb;
+          background: #e5e7eb;
+          padding: 4px 8px;
           border-radius: 4px;
         }
 
-        .column-name {
-          font-weight: 500;
+        .table-columns table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .table-columns th,
+        .table-columns td {
+          padding: 12px 20px;
+          text-align: left;
+          border-bottom: 1px solid #f3f4f6;
+          font-size: 14px;
+        }
+
+        .table-columns th {
+          background: #f9fafb;
+          font-weight: 600;
           color: #374151;
         }
 
-        .column-type {
-          color: #6b7280;
-          font-size: 12px;
-          font-family: monospace;
+        .pk-badge {
+          background: #fef3c7;
+          color: #92400e;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 10px;
+          font-weight: 600;
+          margin-left: 8px;
         }
 
-        .settings-sections {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-          gap: 24px;
+        .constraint {
+          background: #e5e7eb;
+          color: #374151;
+          padding: 2px 6px;
+          border-radius: 3px;
+          font-size: 10px;
+          font-weight: 500;
         }
 
-        .settings-section {
+        .logs-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .log-entry {
           background: white;
           border-radius: 8px;
+          padding: 16px;
           border: 1px solid #e5e7eb;
-          padding: 24px;
+          border-left: 4px solid #d1d5db;
         }
 
-        .settings-section h3 {
-          margin: 0 0 16px 0;
-          color: #1f2937;
+        .log-entry.info {
+          border-left-color: #06b6d4;
         }
 
-        .setting-item {
+        .log-entry.error {
+          border-left-color: #dc2626;
+        }
+
+        .log-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 0;
-          border-bottom: 1px solid #f3f4f6;
+          margin-bottom: 8px;
         }
 
-        .setting-item:last-child {
-          border-bottom: none;
-        }
-
-        .toggle-btn {
-          padding: 6px 12px;
-          border: 1px solid #d1d5db;
+        .log-level {
+          padding: 4px 8px;
           border-radius: 4px;
-          background: white;
-          cursor: pointer;
           font-size: 12px;
+          font-weight: 500;
+          text-transform: uppercase;
         }
 
-        .toggle-btn.active {
-          background: #10b981;
-          color: white;
-          border-color: #10b981;
+        .log-message {
+          font-size: 14px;
+          color: #374151;
+          margin-bottom: 4px;
         }
 
-        .setting-input {
-          padding: 6px 8px;
-          border: 1px solid #d1d5db;
+        .log-details {
+          font-size: 12px;
+          color: #6b7280;
+          font-family: monospace;
+          background: #f9fafb;
+          padding: 8px;
           border-radius: 4px;
-          width: 80px;
+          margin-top: 8px;
+        }
+
+        .log-user {
+          font-size: 12px;
+          color: #9ca3af;
+          margin-top: 4px;
         }
 
         @keyframes spin {
@@ -884,23 +977,30 @@ const AdminDashboard = () => {
         }
 
         @media (max-width: 768px) {
-          .admin-header {
-            flex-direction: column;
-            gap: 12px;
-            align-items: flex-start;
-          }
-          
-          .admin-nav {
-            overflow-x: auto;
+          .admin-content {
+            padding: 16px;
           }
           
           .stats-grid {
             grid-template-columns: 1fr;
           }
           
-          .health-metrics {
+          .section-header {
             flex-direction: column;
             gap: 16px;
+            align-items: flex-start;
+          }
+          
+          .section-controls {
+            width: 100%;
+          }
+          
+          .search-input {
+            width: 100%;
+          }
+          
+          .users-table, .companies-table {
+            overflow-x: auto;
           }
         }
       `}</style>
