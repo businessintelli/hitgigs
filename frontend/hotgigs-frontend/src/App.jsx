@@ -11,6 +11,9 @@ import ContactPage from './pages/ContactPage'
 import SignInPage from './pages/SignInPage'
 import SignUpPage from './pages/SignUpPage'
 import StatusDashboard from './pages/StatusDashboard'
+import SavedJobsPage from './pages/SavedJobsPage'
+import MyApplicationsPage from './pages/MyApplicationsPage'
+import CompanyDashboard from './pages/CompanyDashboard'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 
@@ -92,6 +95,30 @@ function App() {
               <Route path="/status" element={
                 <Layout>
                   <StatusDashboard />
+                </Layout>
+              } />
+
+              <Route path="/saved-jobs" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <SavedJobsPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+              
+              <Route path="/my-applications" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <MyApplicationsPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              <Route path="/company-dashboard" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <CompanyDashboard />
+                  </ProtectedRoute>
                 </Layout>
               } />
 

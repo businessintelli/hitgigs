@@ -13,7 +13,24 @@ const Navbar = () => {
   const isAuthenticated = !!user || !!localStorage.getItem('authToken')
   const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}')
   const isAdmin = currentUser?.is_admin || currentUser?.role === 'admin'
-  const userRole = currentUser?.role || currentUser?.user_type || 'candidate'
+  
+  // More comprehensive role detection
+  let userRole = 'candidate' // default
+  if (currentUser?.role) {
+    userRole = currentUser.role
+  } else if (currentUser?.user_type) {
+    userRole = currentUser.user_type
+  }
+  
+  // Debug logging (remove in production)
+  if (isAuthenticated && process.env.NODE_ENV === 'development') {
+    console.log('🔍 Navbar Debug:', {
+      isAuthenticated,
+      currentUser,
+      userRole,
+      isAdmin
+    })
+  }
 
   const navigationItems = [
     { label: 'Home', path: '/' },
@@ -33,6 +50,7 @@ const Navbar = () => {
       )
     } else if (userRole === 'company' || userRole === 'recruiter') {
       roleBasedItems.push(
+        { label: 'Company Dashboard', path: '/company-dashboard', icon: <User size={16} /> },
         { label: 'Post Job', path: '/post-job', icon: <User size={16} /> },
         { label: 'My Jobs', path: '/my-jobs', icon: <User size={16} /> },
         { label: 'Applications', path: '/applications', icon: <User size={16} /> }

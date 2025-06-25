@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing token on app load
   useEffect(() => {
-    const token = localStorage.getItem('hotgigs_token')
+    const token = localStorage.getItem('authToken')
     if (token) {
       // Set token in API headers
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
@@ -45,14 +45,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      const { user, access_token, refresh_token } = response.data
+      const { user, token } = response.data
       
-      // Store tokens
-      localStorage.setItem('hotgigs_token', access_token)
-      localStorage.setItem('hotgigs_refresh_token', refresh_token)
+      // Store tokens with consistent naming
+      localStorage.setItem('authToken', token)
+      localStorage.setItem('user', JSON.stringify(user))
       
       // Set token in API headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
       
       setUser(user)
       return { success: true, user }
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Login failed:', error)
       return { 
         success: false, 
-        error: error.response?.data?.error || 'Login failed' 
+        error: error.response?.data?.detail || error.response?.data?.error || 'Login failed' 
       }
     }
   }
@@ -117,8 +117,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     // Remove tokens
-    localStorage.removeItem('hotgigs_token')
-    localStorage.removeItem('hotgigs_refresh_token')
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminUser')
     
     // Remove token from API headers
     delete api.defaults.headers.common['Authorization']
