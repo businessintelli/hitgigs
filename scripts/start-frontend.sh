@@ -1,184 +1,196 @@
 #!/bin/bash
 
-# HotGigs.ai Frontend Start Script
-# =================================
+# HotGigs.ai Frontend Startup Script
+# Automatically detects project structure and starts frontend service
 
-set -e  # Exit on any error
-
-# Colors for output
+# Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration
-FRONTEND_DIR="frontend/hotgigs-frontend"
-PID_FILE="$FRONTEND_DIR/frontend.pid"
-LOG_FILE="$FRONTEND_DIR/frontend.log"
-PORT=3002
+# Print functions
+print_header() {
+    echo -e "${BLUE}🌐 HotGigs.ai Frontend Startup${NC}"
+    echo "==================================="
+}
 
-echo -e "${BLUE}🚀 HotGigs.ai Frontend Startup${NC}"
-echo "=================================="
-
-# Function to print status
 print_status() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
 print_warning() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo -e "${YELLOW}[WARNING]${NC} $1"
 }
 
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if we're in the right directory
-if [[ ! -d "$FRONTEND_DIR" ]]; then
-    print_error "Frontend directory not found. Please run from project root."
-    echo "Current directory: $(pwd)"
-    echo "Looking for: $FRONTEND_DIR"
+# Load directory detection
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/detect-structure.sh"
+
+# Detect project structure
+print_status "Detecting project structure..."
+if ! PROJECT_INFO=$(detect_project_structure); then
+    print_error "Failed to detect project structure"
     exit 1
 fi
+
+# Parse the detected information
+eval "$PROJECT_INFO"
+
+print_status "Project structure detected:"
+print_status "  Project Root: $PROJECT_ROOT"
+print_status "  Frontend Dir: $FRONTEND_DIR"
+print_status "  Package Manager: $PACKAGE_MANAGER"
+
+# Set up file paths
+PID_FILE="$PROJECT_ROOT/frontend.pid"
+LOG_FILE="$PROJECT_ROOT/frontend.log"
+
+print_header
 
 # Check if frontend is already running
 if [[ -f "$PID_FILE" ]]; then
     PID=$(cat "$PID_FILE")
-    if ps -p "$PID" > /dev/null 2>&1; then
+    if ps -p $PID > /dev/null 2>&1; then
         print_warning "Frontend is already running (PID: $PID)"
-        echo "Frontend URL: http://localhost:$PORT"
-        echo "To stop: ./scripts/stop-frontend.sh"
+        print_status "Frontend URL: http://localhost:3002"
         exit 0
     else
-        print_warning "Stale PID file found, removing..."
+        print_status "Removing stale PID file..."
         rm -f "$PID_FILE"
     fi
 fi
 
-# Check if port is in use
-if lsof -Pi :$PORT -sTCP:LISTEN -t >/dev/null 2>&1; then
-    print_error "Port $PORT is already in use"
-    echo "Please stop the service using port $PORT or use a different port"
-    exit 1
+# Check if port 3002 is in use
+if lsof -Pi :3002 -sTCP:LISTEN -t >/dev/null 2>&1; then
+    print_warning "Port 3002 is already in use"
+    print_status "Attempting to stop existing process..."
+    
+    # Try to kill process on port 3002
+    PID_ON_PORT=$(lsof -Pi :3002 -sTCP:LISTEN -t)
+    if [[ -n "$PID_ON_PORT" ]]; then
+        kill -TERM $PID_ON_PORT 2>/dev/null
+        sleep 2
+        
+        # Force kill if still running
+        if ps -p $PID_ON_PORT > /dev/null 2>&1; then
+            kill -KILL $PID_ON_PORT 2>/dev/null
+        fi
+    fi
 fi
-
-# Check for Node.js
-if ! command -v node &> /dev/null; then
-    print_error "Node.js is not installed"
-    echo "Please install Node.js from https://nodejs.org/"
-    exit 1
-fi
-
-# Check for package manager
-PACKAGE_MANAGER=""
-if command -v pnpm &> /dev/null; then
-    PACKAGE_MANAGER="pnpm"
-elif command -v npm &> /dev/null; then
-    PACKAGE_MANAGER="npm"
-else
-    print_error "No package manager found (pnpm or npm required)"
-    exit 1
-fi
-
-print_status "Using package manager: $PACKAGE_MANAGER"
 
 # Navigate to frontend directory
-cd "$FRONTEND_DIR"
+print_status "Navigating to frontend directory..."
+cd "$FRONTEND_DIR" || {
+    print_error "Failed to navigate to frontend directory: $FRONTEND_DIR"
+    exit 1
+}
 
 # Install/update dependencies
 print_status "Installing/updating dependencies..."
-if [[ "$PACKAGE_MANAGER" == "pnpm" ]]; then
-    pnpm install > /dev/null 2>&1
-else
-    npm install > /dev/null 2>&1
-fi
+case "$PACKAGE_MANAGER" in
+    "pnpm")
+        if ! command -v pnpm &> /dev/null; then
+            print_status "Installing pnpm..."
+            npm install -g pnpm > /dev/null 2>&1
+        fi
+        pnpm install > /dev/null 2>&1 || {
+            print_warning "Some dependencies failed to install"
+        }
+        ;;
+    "yarn")
+        if ! command -v yarn &> /dev/null; then
+            print_status "Installing yarn..."
+            npm install -g yarn > /dev/null 2>&1
+        fi
+        yarn install > /dev/null 2>&1 || {
+            print_warning "Some dependencies failed to install"
+        }
+        ;;
+    *)
+        npm install > /dev/null 2>&1 || {
+            print_warning "Some dependencies failed to install"
+        }
+        ;;
+esac
 
-# Check if backend is running
-print_status "Checking backend connectivity..."
-if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
-    print_status "✅ Backend is running and accessible"
-else
-    print_warning "⚠️  Backend is not running or not accessible"
-    echo "   Consider starting backend first: ./scripts/start-backend.sh"
-    echo "   Frontend will still start but API calls may fail"
-fi
-
-# Create environment file if it doesn't exist
-if [[ ! -f ".env" ]]; then
-    print_status "Creating environment file..."
-    cat > .env << EOF
+# Create or update environment file
+print_status "Setting up environment configuration..."
+cat > .env << EOF
 VITE_API_BASE_URL=http://localhost:8000/api
 VITE_APP_NAME=HotGigs.ai
 VITE_APP_VERSION=1.0.0
 EOF
-fi
 
 # Start the frontend server
-print_status "Starting frontend development server..."
-
-# Go back to project root for relative paths
-cd "$(dirname "$0")/.."
+print_status "Starting frontend server..."
 
 # Start server in background
-if [[ "$PACKAGE_MANAGER" == "pnpm" ]]; then
-    cd "$FRONTEND_DIR" && nohup pnpm dev --port $PORT --host 0.0.0.0 > "$LOG_FILE" 2>&1 &
-else
-    cd "$FRONTEND_DIR" && nohup npm run dev -- --port $PORT --host 0.0.0.0 > "$LOG_FILE" 2>&1 &
-fi
+case "$PACKAGE_MANAGER" in
+    "pnpm")
+        nohup pnpm dev --port 3002 > "$LOG_FILE" 2>&1 &
+        ;;
+    "yarn")
+        nohup yarn dev --port 3002 > "$LOG_FILE" 2>&1 &
+        ;;
+    *)
+        nohup npm run dev -- --port 3002 > "$LOG_FILE" 2>&1 &
+        ;;
+esac
 
 FRONTEND_PID=$!
 
 # Save PID
 echo $FRONTEND_PID > "$PID_FILE"
 
-# Wait for server to start
-print_status "Waiting for frontend server to start..."
+# Wait a moment for server to start
 sleep 5
 
 # Check if server started successfully
 if ps -p $FRONTEND_PID > /dev/null 2>&1; then
     # Test if server is responding
-    RETRY_COUNT=0
-    MAX_RETRIES=10
-    
-    while [[ $RETRY_COUNT -lt $MAX_RETRIES ]]; do
-        if curl -s http://localhost:$PORT > /dev/null 2>&1; then
-            print_status "✅ Frontend server started successfully!"
-            echo ""
-            echo "📊 Frontend Information:"
-            echo "   • PID: $FRONTEND_PID"
-            echo "   • Port: $PORT"
-            echo "   • URL: http://localhost:$PORT"
-            echo "   • Admin: http://localhost:$PORT/admin/login"
-            echo "   • Status: http://localhost:$PORT/status"
-            echo "   • Log file: $LOG_FILE"
-            echo ""
-            echo "🛠️  Management Commands:"
-            echo "   • Stop: ./scripts/stop-frontend.sh"
-            echo "   • Status: ./scripts/status-frontend.sh"
-            echo "   • Logs: tail -f $LOG_FILE"
-            echo ""
-            echo "🔐 Admin Credentials:"
-            echo "   • Email: admin@hotgigs.ai"
-            echo "   • Password: admin123"
-            echo ""
-            break
+    sleep 3  # Give it more time to fully start
+    if curl -s http://localhost:3002 > /dev/null 2>&1; then
+        print_success "✅ Frontend started successfully"
+        print_status "Frontend PID: $FRONTEND_PID"
+        print_status "Frontend URL: http://localhost:3002"
+        print_status "Admin Panel: http://localhost:3002/admin/login"
+        print_status "Status Dashboard: http://localhost:3002/status"
+        print_status "Log file: $LOG_FILE"
+        
+        # Show recent logs
+        if [[ -f "$LOG_FILE" ]]; then
+            print_status "Recent logs:"
+            tail -5 "$LOG_FILE" | sed 's/^/  /'
         fi
         
-        ((RETRY_COUNT++))
-        echo -n "."
-        sleep 2
-    done
-    
-    if [[ $RETRY_COUNT -eq $MAX_RETRIES ]]; then
-        print_warning "Server started but not responding to HTTP requests"
-        echo "Check logs: tail -f $LOG_FILE"
+        exit 0
+    else
+        print_warning "Frontend started but not responding on port 3002"
+        print_status "This is normal - frontend may still be compiling..."
+        print_status "Check http://localhost:3002 in a few moments"
+        exit 0
     fi
 else
-    print_error "Failed to start frontend server"
+    print_error "❌ Failed to start frontend"
+    
+    # Show error logs
+    if [[ -f "$LOG_FILE" ]]; then
+        print_status "Error logs:"
+        tail -10 "$LOG_FILE"
+    fi
+    
+    # Clean up PID file
     rm -f "$PID_FILE"
-    echo "Check logs: tail -f $LOG_FILE"
     exit 1
 fi
 
