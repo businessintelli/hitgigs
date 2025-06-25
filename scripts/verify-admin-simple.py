@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 """
-Verify Admin User and Test Authentication
+Simple Admin User Verification - Run from backend/hotgigs-api directory
 """
 
 import sys
 import os
-
-# Add the backend src directory to the path
-backend_src = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'backend', 'hotgigs-api', 'src')
-sys.path.insert(0, backend_src)
-
-from database import get_database_service
-import bcrypt
+sys.path.append('src')
 
 def main():
     print("🔍 HotGigs.ai Admin User Verification")
     print("=" * 50)
     
     try:
+        # Import after adding src to path
+        from database import get_database_service
+        import bcrypt
+        
         # Get database service
         db = get_database_service()
         
@@ -27,6 +25,9 @@ def main():
         
         if not admin_user:
             print("❌ Admin user not found!")
+            print("\n💡 Try running the SQL script to create admin user:")
+            print("   1. Go to: https://app.supabase.com/project/nrpvyjwnqvxipjmdjlim/sql")
+            print("   2. Run the SQL from scripts/create-admin-user.sql")
             return
         
         print(f"✅ Admin user found!")
@@ -61,6 +62,7 @@ def main():
                     print("   ✅ Password 'admin123' matches!")
                 else:
                     print("   ❌ Password 'admin123' does NOT match!")
+                    print("   💡 The password hash might be incorrect.")
             except Exception as e:
                 print(f"   ❌ Password verification error: {e}")
         else:
@@ -75,6 +77,7 @@ def main():
             print(f"   🔐 Is admin: {auth_result.get('is_admin')}")
         else:
             print("   ❌ authenticate_user() failed!")
+            print("   💡 This explains why admin login returns 'invalid credentials'")
         
         print("\n🌐 Frontend URLs to try:")
         print("   📱 Regular Login: http://localhost:3002/signin")
@@ -84,6 +87,12 @@ def main():
         print("\n🎯 Credentials to use:")
         print("   📧 Email: admin@hotgigs.ai")
         print("   🔐 Password: admin123")
+        
+        if not auth_result:
+            print("\n🔧 TO FIX INVALID CREDENTIALS:")
+            print("   1. The password hash in database might be wrong")
+            print("   2. Re-run the SQL script to recreate admin user")
+            print("   3. Or check if bcrypt is working properly")
         
     except Exception as e:
         print(f"❌ Error: {e}")
