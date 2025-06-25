@@ -352,6 +352,30 @@ class SupabaseService:
                 'error': str(e),
                 'timestamp': datetime.now(timezone.utc).isoformat()
             }
+    
+    def log_system_event(self, level: str, message: str, details: str = None, user_id: str = None):
+        """Log system events"""
+        try:
+            log_data = {
+                'level': level,
+                'message': message,
+                'created_at': datetime.now(timezone.utc).isoformat()
+            }
+            
+            if details:
+                log_data['details'] = details
+            if user_id:
+                log_data['user_id'] = user_id
+            
+            # Try to insert into system_logs table, if it doesn't exist, just log to console
+            try:
+                self.create_record('system_logs', log_data)
+            except Exception:
+                # If system_logs table doesn't exist, just log to console
+                logger.info(f"System Event [{level}]: {message}")
+                
+        except Exception as e:
+            logger.error(f"Error logging system event: {str(e)}")
 
 # Global instance function
 def get_database_service():
