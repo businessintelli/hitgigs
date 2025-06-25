@@ -5,6 +5,22 @@ import hashlib
 import secrets
 from typing import Optional, List, Dict, Any
 
+# Global database manager instance
+db_manager = None
+
+def init_database(db_path: str = "hotgigs.db"):
+    """Initialize database - function for external use"""
+    global db_manager
+    db_manager = DatabaseManager(db_path)
+    return db_manager
+
+def get_db_manager():
+    """Get the global database manager instance"""
+    global db_manager
+    if db_manager is None:
+        db_manager = DatabaseManager()
+    return db_manager
+
 class DatabaseManager:
     def __init__(self, db_path: str = "hotgigs.db"):
         self.db_path = db_path
@@ -406,15 +422,16 @@ class DatabaseManager:
         conn.close()
         return schema_info
     
-    def log_system_event(self, level: str, message: str, details: str = None, user_id: int = None):
-        """Log system events"""
+    def log_system_event(self, level: str, message: str, details: str = None, 
+                        user_id: int = None, ip_address: str = None, user_agent: str = None):
+        """Log system event"""
         conn = self.get_connection()
         cursor = conn.cursor()
         
         cursor.execute('''
-            INSERT INTO system_logs (level, message, details, user_id)
-            VALUES (?, ?, ?, ?)
-        ''', (level, message, details, user_id))
+            INSERT INTO system_logs (level, message, details, user_id, ip_address, user_agent)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (level, message, details, user_id, ip_address, user_agent))
         
         conn.commit()
         conn.close()
@@ -425,16 +442,82 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT l.*, u.name as user_name 
+            SELECT l.*, u.name as user_name, u.email as user_email
             FROM system_logs l
             LEFT JOIN users u ON l.user_id = u.id
-            ORDER BY l.created_at DESC LIMIT ?
+            ORDER BY l.created_at DESC
+            LIMIT ?
         ''', (limit,))
         
         logs = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return logs
-
-# Global database instance
-db = DatabaseManager()
+    
+    def save_job(self, user_id: int, job_id: int) -> bool:
+        """Save a job for a user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO saved_jobs (user_id, job_id)
+                VALUES (?, ?)
+            ''', (user_id, job_id))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False  # Already saved
+        finally:
+            conn.close()
+    
+    def apply_to_job(self, user_id: int, job_id: int, cover_letter: str = None) -> bool:
+        """Apply to a job"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO job_applications (user_id, job_id, cover_letter, status)
+                VALUES (?, ?, ?, ?)
+            ''', (user_id, job_id, cover_letter, "pending"))
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False  # Already applied
+        finally:
+            conn.close()
+    
+    def get_user_saved_jobs(self, user_id: int) -> List[Dict[str, Any]]:
+        """Get saved jobs for a user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT j.*, s.saved_at
+            FROM saved_jobs s
+            JOIN jobs j ON s.job_id = j.id
+            WHERE s.user_id = ? AND j.is_active = 1
+            ORDER BY s.saved_at DESC
+        ''', (user_id,))
+        
+        jobs = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return jobs
+    
+    def get_user_applications(self, user_id: int) -> List[Dict[str, Any]]:
+        """Get job applications for a user"""
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT j.*, a.status, a.applied_at, a.cover_letter
+            FROM job_applications a
+            JOIN jobs j ON a.job_id = j.id
+            WHERE a.user_id = ?
+            ORDER BY a.applied_at DESC
+        ''', (user_id,))
+        
+        applications = [dict(row) for row in cursor.fetchall()]
+        conn.close()
+        return applications
 

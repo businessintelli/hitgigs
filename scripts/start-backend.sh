@@ -104,7 +104,7 @@ except Exception as e:
 
 # Start the backend server
 print_status "Starting backend server..."
-cd "$(dirname "$0")/.."  # Go back to project root
+cd "$BACKEND_DIR"  # Go to backend directory
 
 # Start server in background
 nohup python "$MAIN_FILE" > "$LOG_FILE" 2>&1 &
