@@ -1,57 +1,111 @@
-import React from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import CandidateProfileManager from '../components/profile/CandidateProfileManager';
-import CompanyAdminInterface from '../components/profile/CompanyAdminInterface';
-import FreelanceRecruiterDashboard from '../components/profile/FreelanceRecruiterDashboard';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
+import React from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import CandidateDashboard from '../components/dashboard/CandidateDashboard'
+import CompanyDashboard from '../components/dashboard/CompanyDashboard'
+import RecruiterDashboard from '../components/dashboard/RecruiterDashboard'
+import AdminDashboard from './AdminDashboard'
 
 const DashboardPage = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth()
 
   if (loading) {
-    return <LoadingSpinner />;
+    return (
+      <div className="dashboard-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
-          <p className="text-gray-600">Please log in to access your dashboard.</p>
-        </div>
+      <div className="dashboard-error">
+        <h2>Access Denied</h2>
+        <p>Please log in to view your dashboard.</p>
       </div>
-    );
+    )
   }
 
   // Route to appropriate dashboard based on user type
   const renderDashboard = () => {
+    if (user.is_admin) {
+      return <AdminDashboard />
+    }
+
     switch (user.user_type) {
       case 'candidate':
-        return <CandidateProfileManager />;
+        return <CandidateDashboard />
       case 'company':
-        return <CompanyAdminInterface />;
+        return <CompanyDashboard />
       case 'freelance_recruiter':
-        return <FreelanceRecruiterDashboard />;
+        return <RecruiterDashboard />
       default:
-        return (
-          <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid User Type</h2>
-              <p className="text-gray-600">
-                Your account type is not recognized. Please contact support.
-              </p>
-            </div>
-          </div>
-        );
+        return <CandidateDashboard /> // Default to candidate dashboard
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="dashboard-page">
       {renderDashboard()}
-    </div>
-  );
-};
+      
+      <style jsx>{`
+        .dashboard-page {
+          width: 100%;
+          height: 100%;
+        }
 
-export default DashboardPage;
+        .dashboard-loading {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 400px;
+          gap: 16px;
+        }
+
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid #e5e7eb;
+          border-top: 3px solid #06b6d4;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .dashboard-loading p {
+          color: #6b7280;
+          font-size: 16px;
+        }
+
+        .dashboard-error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 400px;
+          text-align: center;
+        }
+
+        .dashboard-error h2 {
+          font-size: 24px;
+          font-weight: 700;
+          color: #ef4444;
+          margin-bottom: 8px;
+        }
+
+        .dashboard-error p {
+          color: #6b7280;
+          font-size: 16px;
+        }
+
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  )
+}
+
+export default DashboardPage
 

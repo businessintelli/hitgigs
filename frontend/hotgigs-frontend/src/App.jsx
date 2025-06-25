@@ -34,6 +34,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard'
 // Import components
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
+import DashboardLayout from './components/layout/DashboardLayout'
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
@@ -118,61 +119,61 @@ function App() {
               } />
 
               <Route path="/saved-jobs" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <SavedJobsPage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
               
               <Route path="/my-applications" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <MyApplicationsPage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               <Route path="/company-dashboard" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <CompanyDashboard />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               <Route path="/post-job" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <PostJobPage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               <Route path="/applications" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <ApplicationsPage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               {/* Main Dashboard Route */}
               <Route path="/dashboard" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <DashboardPage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               {/* Profile and User Management */}
               <Route path="/profile" element={
-                <Layout>
-                  <ProtectedRoute>
+                <ProtectedRoute>
+                  <DashboardLayout>
                     <ProfilePage />
-                  </ProtectedRoute>
-                </Layout>
+                  </DashboardLayout>
+                </ProtectedRoute>
               } />
 
               {/* Job Related Pages */}
