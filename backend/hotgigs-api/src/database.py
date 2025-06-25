@@ -1,423 +1,326 @@
+"""
+Supabase Database Service for HotGigs.ai
+Handles all database operations using Supabase Python client
+"""
+
 import os
-import sqlite3
-from datetime import datetime
-import hashlib
-import secrets
-from typing import Optional, List, Dict, Any
+import logging
+from typing import Dict, List, Optional, Any, Union
+from datetime import datetime, timezone
+from supabase import create_client, Client
+from dotenv import load_dotenv
 
-class DatabaseManager:
-    def __init__(self, db_path: str = "hotgigs.db"):
-        self.db_path = db_path
-        self.init_database()
+# Load environment variables from project root
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class SupabaseService:
+    """Supabase database service for HotGigs.ai"""
     
-    def get_connection(self):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row  # Enable dict-like access
-        return conn
+    def __init__(self):
+        """Initialize Supabase client"""
+        self.url = os.getenv('SUPABASE_URL')
+        self.key = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
+        
+        if not self.url or not self.key:
+            raise ValueError("Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in your .env file")
+        
+        self.client: Client = create_client(self.url, self.key)
+        logger.info("Supabase client initialized successfully")
     
-    def init_database(self):
-        """Initialize database with all required tables"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Users table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                role TEXT DEFAULT 'user',
-                is_active BOOLEAN DEFAULT 1,
-                is_admin BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_login TIMESTAMP,
-                profile_data TEXT
-            )
-        ''')
-        
-        # Companies table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS companies (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                description TEXT,
-                website TEXT,
-                logo_url TEXT,
-                is_active BOOLEAN DEFAULT 1,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                user_id INTEGER,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Jobs table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS jobs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT NOT NULL,
-                company TEXT NOT NULL,
-                location TEXT NOT NULL,
-                salary TEXT,
-                type TEXT DEFAULT 'Full-time',
-                is_active BOOLEAN DEFAULT 1,
-                posted_date TEXT DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                company_id INTEGER,
-                FOREIGN KEY (company_id) REFERENCES companies (id)
-            )
-        ''')
-        
-        # Job applications table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS job_applications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                job_id INTEGER NOT NULL,
-                status TEXT DEFAULT 'pending',
-                applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                cover_letter TEXT,
-                resume_url TEXT,
-                FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (job_id) REFERENCES jobs (id),
-                UNIQUE(user_id, job_id)
-            )
-        ''')
-        
-        # Saved jobs table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS saved_jobs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                job_id INTEGER NOT NULL,
-                saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id),
-                FOREIGN KEY (job_id) REFERENCES jobs (id),
-                UNIQUE(user_id, job_id)
-            )
-        ''')
-        
-        # System logs table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS system_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                level TEXT NOT NULL,
-                message TEXT NOT NULL,
-                details TEXT,
-                user_id INTEGER,
-                ip_address TEXT,
-                user_agent TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        # Admin sessions table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS admin_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                token TEXT UNIQUE NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        
-        # Insert sample data
-        self.insert_sample_data()
+    def get_client(self) -> Client:
+        """Get the Supabase client instance"""
+        return self.client
     
-    def insert_sample_data(self):
-        """Insert sample data for testing"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        # Check if admin user exists
-        cursor.execute("SELECT id FROM users WHERE email = ?", ("admin@hotgigs.ai",))
-        if not cursor.fetchone():
-            # Create admin user
-            admin_password = self.hash_password("admin123")
-            cursor.execute('''
-                INSERT INTO users (name, email, password_hash, role, is_admin, is_active)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', ("Super Admin", "admin@hotgigs.ai", admin_password, "admin", 1, 1))
-            
-            # Create test users
-            test_users = [
-                ("John Doe", "john@example.com", "user123", "user"),
-                ("Jane Smith", "jane@example.com", "user123", "user"),
-                ("Tech Corp", "hr@techcorp.com", "company123", "company"),
-                ("StartupXYZ", "contact@startupxyz.com", "company123", "company"),
-                ("Alice Recruiter", "alice@recruiter.com", "recruiter123", "recruiter")
-            ]
-            
-            for name, email, password, role in test_users:
-                password_hash = self.hash_password(password)
-                cursor.execute('''
-                    INSERT INTO users (name, email, password_hash, role, is_active)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (name, email, password_hash, role, 1))
-        
-        # Check if companies exist
-        cursor.execute("SELECT id FROM companies LIMIT 1")
-        if not cursor.fetchone():
-            companies = [
-                ("Tech Corp", "hr@techcorp.com", "Leading technology company", "https://techcorp.com"),
-                ("StartupXYZ", "contact@startupxyz.com", "Innovative startup", "https://startupxyz.com"),
-                ("Global Solutions", "jobs@globalsolutions.com", "Global consulting firm", "https://globalsolutions.com"),
-                ("Creative Agency", "careers@creative.com", "Digital creative agency", "https://creative.com")
-            ]
-            
-            for name, email, description, website in companies:
-                cursor.execute('''
-                    INSERT INTO companies (name, email, description, website, is_active)
-                    VALUES (?, ?, ?, ?, ?)
-                ''', (name, email, description, website, 1))
-        
-        # Check if jobs exist
-        cursor.execute("SELECT id FROM jobs LIMIT 1")
-        if not cursor.fetchone():
-            jobs = [
-                ("Senior Software Engineer", "We are looking for a senior software engineer with 5+ years of experience in Python, React, and cloud technologies.", "Tech Corp", "San Francisco, CA", "$120,000 - $150,000", "Full-time"),
-                ("Product Manager", "Join our product team to drive innovation and strategy.", "StartupXYZ", "Remote", "$90,000 - $120,000", "Full-time"),
-                ("Frontend Developer", "Build amazing user experiences with React and TypeScript.", "Creative Agency", "New York, NY", "$80,000 - $100,000", "Full-time"),
-                ("Data Scientist", "Analyze large datasets to drive business decisions.", "Global Solutions", "Boston, MA", "$100,000 - $130,000", "Full-time"),
-                ("UX Designer", "Design intuitive user interfaces and improve user experience.", "Creative Agency", "Los Angeles, CA", "$70,000 - $90,000", "Full-time"),
-                ("DevOps Engineer", "Manage our cloud infrastructure and deployment pipelines.", "Tech Corp", "Seattle, WA", "$110,000 - $140,000", "Full-time")
-            ]
-            
-            for title, description, company, location, salary, job_type in jobs:
-                cursor.execute('''
-                    INSERT INTO jobs (title, description, company, location, salary, type, is_active)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (title, description, company, location, salary, job_type, 1))
-        
-        conn.commit()
-        conn.close()
-    
-    def hash_password(self, password: str) -> str:
-        """Hash password using SHA-256"""
-        return hashlib.sha256(password.encode()).hexdigest()
-    
-    def verify_password(self, password: str, password_hash: str) -> bool:
-        """Verify password against hash"""
-        return self.hash_password(password) == password_hash
-    
-    def create_user(self, name: str, email: str, password: str, role: str = "user") -> Optional[int]:
-        """Create a new user"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
+    # Generic CRUD operations
+    def create_record(self, table: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create a new record in the specified table"""
         try:
-            password_hash = self.hash_password(password)
-            cursor.execute('''
-                INSERT INTO users (name, email, password_hash, role, is_active)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (name, email, password_hash, role, 1))
-            
-            user_id = cursor.lastrowid
-            conn.commit()
-            return user_id
-        except sqlite3.IntegrityError:
+            result = self.client.table(table).insert(data).execute()
+            if result.data:
+                logger.info(f"Created record in {table}: {result.data[0].get('id', 'unknown')}")
+                return result.data[0]
             return None
-        finally:
-            conn.close()
+        except Exception as e:
+            logger.error(f"Error creating record in {table}: {str(e)}")
+            raise
     
-    def authenticate_user(self, email: str, password: str) -> Optional[Dict[str, Any]]:
-        """Authenticate user and return user data"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, email, role, is_active, is_admin, created_at, last_login
-            FROM users WHERE email = ? AND is_active = 1
-        ''', (email,))
-        
-        user = cursor.fetchone()
-        if user:
-            # Get password hash
-            cursor.execute("SELECT password_hash FROM users WHERE id = ?", (user['id'],))
-            password_hash = cursor.fetchone()['password_hash']
+    def get_record_by_id(self, table: str, record_id: str) -> Optional[Dict[str, Any]]:
+        """Get a record by ID"""
+        try:
+            result = self.client.table(table).select('*').eq('id', record_id).execute()
+            if result.data:
+                return result.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error getting record from {table}: {str(e)}")
+            raise
+    
+    def update_record(self, table: str, record_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Update a record by ID"""
+        try:
+            # Add updated_at timestamp
+            data['updated_at'] = datetime.now(timezone.utc).isoformat()
             
-            if self.verify_password(password, password_hash):
-                # Update last login
-                cursor.execute('''
-                    UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?
-                ''', (user['id'],))
-                conn.commit()
-                
-                # Convert to dict
-                user_dict = dict(user)
-                user_dict['last_login'] = datetime.now().isoformat()
-                conn.close()
-                return user_dict
-        
-        conn.close()
-        return None
+            result = self.client.table(table).update(data).eq('id', record_id).execute()
+            if result.data:
+                logger.info(f"Updated record in {table}: {record_id}")
+                return result.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error updating record in {table}: {str(e)}")
+            raise
     
-    def get_all_users(self) -> List[Dict[str, Any]]:
-        """Get all users"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, email, role, is_active, is_admin, created_at, last_login
-            FROM users ORDER BY created_at DESC
-        ''')
-        
-        users = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return users
+    def delete_record(self, table: str, record_id: str) -> bool:
+        """Delete a record by ID"""
+        try:
+            result = self.client.table(table).delete().eq('id', record_id).execute()
+            logger.info(f"Deleted record from {table}: {record_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting record from {table}: {str(e)}")
+            raise
     
-    def get_all_companies(self) -> List[Dict[str, Any]]:
-        """Get all companies"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, email, description, website, is_active, created_at
-            FROM companies ORDER BY created_at DESC
-        ''')
-        
-        companies = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return companies
+    def get_records(self, table: str, filters: Optional[Dict[str, Any]] = None, 
+                   limit: Optional[int] = None, offset: Optional[int] = None,
+                   order_by: Optional[str] = None, ascending: bool = True) -> List[Dict[str, Any]]:
+        """Get multiple records with optional filtering and pagination"""
+        try:
+            query = self.client.table(table).select('*')
+            
+            # Apply filters
+            if filters:
+                for key, value in filters.items():
+                    if isinstance(value, list):
+                        query = query.in_(key, value)
+                    else:
+                        query = query.eq(key, value)
+            
+            # Apply ordering
+            if order_by:
+                query = query.order(order_by, desc=not ascending)
+            
+            # Apply pagination
+            if limit:
+                query = query.limit(limit)
+            if offset:
+                query = query.offset(offset)
+            
+            result = query.execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error getting records from {table}: {str(e)}")
+            raise
     
-    def get_all_jobs(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get all jobs"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, title, description, company, location, salary, type, is_active, posted_date
-            FROM jobs WHERE is_active = 1 ORDER BY posted_date DESC LIMIT ?
-        ''', (limit,))
-        
-        jobs = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        return jobs
+    def search_records(self, table: str, search_column: str, search_term: str,
+                      additional_filters: Optional[Dict[str, Any]] = None,
+                      limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Search records using text search"""
+        try:
+            query = self.client.table(table).select('*')
+            
+            # Apply text search
+            query = query.ilike(search_column, f'%{search_term}%')
+            
+            # Apply additional filters
+            if additional_filters:
+                for key, value in additional_filters.items():
+                    query = query.eq(key, value)
+            
+            # Apply limit
+            if limit:
+                query = query.limit(limit)
+            
+            result = query.execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error searching records in {table}: {str(e)}")
+            raise
     
-    def get_job_count(self) -> int:
-        """Get total job count"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as count FROM jobs WHERE is_active = 1")
-        count = cursor.fetchone()['count']
-        conn.close()
-        return count
+    def count_records(self, table: str, filters: Optional[Dict[str, Any]] = None) -> int:
+        """Count records with optional filtering"""
+        try:
+            query = self.client.table(table).select('id', count='exact')
+            
+            # Apply filters
+            if filters:
+                for key, value in filters.items():
+                    query = query.eq(key, value)
+            
+            result = query.execute()
+            return result.count or 0
+            
+        except Exception as e:
+            logger.error(f"Error counting records in {table}: {str(e)}")
+            raise
     
-    def get_user_count(self) -> int:
-        """Get total user count"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as count FROM users WHERE is_active = 1")
-        count = cursor.fetchone()['count']
-        conn.close()
-        return count
+    # User-specific operations
+    def create_user(self, user_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create a new user"""
+        return self.create_record('users', user_data)
     
-    def update_user_status(self, user_id: int, is_active: bool) -> bool:
-        """Update user active status"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE users SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-        ''', (is_active, user_id))
-        
-        success = cursor.rowcount > 0
-        conn.commit()
-        conn.close()
-        return success
+    def get_user_by_email(self, email: str) -> Optional[Dict[str, Any]]:
+        """Get user by email"""
+        try:
+            result = self.client.table('users').select('*').eq('email', email).execute()
+            if result.data:
+                return result.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user by email: {str(e)}")
+            raise
     
-    def update_company_status(self, company_id: int, is_active: bool) -> bool:
-        """Update company active status"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            UPDATE companies SET is_active = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
-        ''', (is_active, company_id))
-        
-        success = cursor.rowcount > 0
-        conn.commit()
-        conn.close()
-        return success
+    def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get complete user profile with related data"""
+        try:
+            # Get user basic info
+            user = self.get_record_by_id('users', user_id)
+            if not user:
+                return None
+            
+            return user
+            
+        except Exception as e:
+            logger.error(f"Error getting user profile: {str(e)}")
+            raise
     
-    def get_system_stats(self) -> Dict[str, Any]:
-        """Get system statistics"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        stats = {}
-        
-        # User stats
-        cursor.execute("SELECT COUNT(*) as total FROM users")
-        stats['total_users'] = cursor.fetchone()['total']
-        
-        cursor.execute("SELECT COUNT(*) as active FROM users WHERE is_active = 1")
-        stats['active_users'] = cursor.fetchone()['active']
-        
-        # Company stats
-        cursor.execute("SELECT COUNT(*) as total FROM companies")
-        stats['total_companies'] = cursor.fetchone()['total']
-        
-        cursor.execute("SELECT COUNT(*) as active FROM companies WHERE is_active = 1")
-        stats['active_companies'] = cursor.fetchone()['active']
-        
-        # Job stats
-        cursor.execute("SELECT COUNT(*) as total FROM jobs")
-        stats['total_jobs'] = cursor.fetchone()['total']
-        
-        cursor.execute("SELECT COUNT(*) as active FROM jobs WHERE is_active = 1")
-        stats['active_jobs'] = cursor.fetchone()['active']
-        
-        # Application stats
-        cursor.execute("SELECT COUNT(*) as total FROM job_applications")
-        stats['total_applications'] = cursor.fetchone()['total']
-        
-        conn.close()
-        return stats
+    # Job-specific operations
+    def get_active_jobs(self, limit: Optional[int] = None, offset: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get all active jobs with company information"""
+        try:
+            query = self.client.table('jobs').select('*').eq('status', 'active')
+            
+            if limit:
+                query = query.limit(limit)
+            if offset:
+                query = query.offset(offset)
+            
+            query = query.order('created_at', desc=True)
+            
+            result = query.execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error getting active jobs: {str(e)}")
+            raise
     
-    def log_system_event(self, level: str, message: str, details: str = None, user_id: int = None):
-        """Log system events"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO system_logs (level, message, details, user_id)
-            VALUES (?, ?, ?, ?)
-        ''', (level, message, details, user_id))
-        
-        conn.commit()
-        conn.close()
+    def search_jobs(self, search_term: str, location: Optional[str] = None,
+                   job_type: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Search jobs with filters"""
+        try:
+            query = self.client.table('jobs').select('*').eq('status', 'active')
+            
+            # Text search in title and description
+            if search_term:
+                query = query.or_(f'title.ilike.%{search_term}%,description.ilike.%{search_term}%')
+            
+            # Location filter
+            if location:
+                query = query.ilike('location', f'%{location}%')
+            
+            # Job type filter
+            if job_type:
+                query = query.eq('employment_type', job_type)
+            
+            if limit:
+                query = query.limit(limit)
+            
+            query = query.order('created_at', desc=True)
+            
+            result = query.execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error searching jobs: {str(e)}")
+            raise
+    
+    # Application operations
+    def create_application(self, application_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Create a job application"""
+        return self.create_record('job_applications', application_data)
+    
+    def get_user_applications(self, user_id: str) -> List[Dict[str, Any]]:
+        """Get all applications for a user"""
+        try:
+            result = self.client.table('job_applications').select('*').eq('user_id', user_id).order('applied_at', desc=True).execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error getting user applications: {str(e)}")
+            raise
+    
+    # Company operations
+    def get_company_jobs(self, company_id: str) -> List[Dict[str, Any]]:
+        """Get all jobs for a company"""
+        return self.get_records('jobs', {'company_id': company_id}, order_by='created_at', ascending=False)
+    
+    def get_job_applications(self, job_id: str) -> List[Dict[str, Any]]:
+        """Get all applications for a job"""
+        try:
+            result = self.client.table('job_applications').select('*').eq('job_id', job_id).order('applied_at', desc=True).execute()
+            return result.data or []
+            
+        except Exception as e:
+            logger.error(f"Error getting job applications: {str(e)}")
+            raise
+    
+    # Health check
+    def health_check(self) -> Dict[str, Any]:
+        """Check database connection and basic functionality"""
+        try:
+            # Test basic query
+            result = self.client.table('users').select('id').limit(1).execute()
+            
+            # Get some basic stats
+            user_count = self.count_records('users')
+            job_count = self.count_records('jobs')
+            
+            return {
+                'status': 'healthy',
+                'connection': 'ok',
+                'stats': {
+                    'total_users': user_count,
+                    'total_jobs': job_count
+                },
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Health check failed: {str(e)}")
+            return {
+                'status': 'unhealthy',
+                'error': str(e),
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
 
-# Global database manager instance
-db_manager = None
+# Global instance function
+def get_database_service():
+    """Get database service instance"""
+    return SupabaseService()
 
-def get_db_manager():
-    """Get global database manager instance"""
-    global db_manager
-    if db_manager is None:
-        db_manager = DatabaseManager()
-    return db_manager
+# Backward compatibility
+DatabaseService = SupabaseService
+
+# For main.py compatibility
+db = get_database_service()
 
 def init_database():
     """Initialize database - called by startup scripts"""
     try:
-        manager = get_db_manager()
-        print("✅ Database initialized successfully")
-        return True
+        db_service = get_database_service()
+        health = db_service.health_check()
+        if health['status'] == 'healthy':
+            print("✅ Database initialized successfully")
+            return True
+        else:
+            print(f"❌ Database initialization failed: {health.get('error', 'Unknown error')}")
+            return False
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
         return False
-
-# For backward compatibility
-db = get_db_manager()
 
