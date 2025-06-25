@@ -1,14 +1,19 @@
 import React, { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Shield, Activity } from 'lucide-react'
+import { Menu, X, Shield, Activity, User, LogOut } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+  const { user, logout } = useAuth()
   
-  // Simulate admin check - in real app, this would come from auth context
-  const isAdmin = true // Set to true for demo purposes
+  // Check if user is authenticated and get their role
+  const isAuthenticated = !!user || !!localStorage.getItem('authToken')
+  const currentUser = user || JSON.parse(localStorage.getItem('user') || '{}')
+  const isAdmin = currentUser?.is_admin || currentUser?.role === 'admin'
+  const userRole = currentUser?.role || currentUser?.user_type || 'candidate'
 
   const navigationItems = [
     { label: 'Home', path: '/' },
@@ -18,8 +23,42 @@ const Navbar = () => {
     { label: 'Status', path: '/status', icon: <Activity size={16} /> }
   ]
 
+  // Role-based navigation items
+  const roleBasedItems = []
+  if (isAuthenticated) {
+    if (userRole === 'candidate') {
+      roleBasedItems.push(
+        { label: 'My Applications', path: '/my-applications', icon: <User size={16} /> },
+        { label: 'Saved Jobs', path: '/saved-jobs', icon: <User size={16} /> }
+      )
+    } else if (userRole === 'company' || userRole === 'recruiter') {
+      roleBasedItems.push(
+        { label: 'Post Job', path: '/post-job', icon: <User size={16} /> },
+        { label: 'My Jobs', path: '/my-jobs', icon: <User size={16} /> },
+        { label: 'Applications', path: '/applications', icon: <User size={16} /> }
+      )
+    }
+  }
+
   const handleNavigation = (path) => {
     navigate(path)
+    setIsMenuOpen(false)
+  }
+
+  const handleLogout = () => {
+    // Clear localStorage tokens
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('user')
+    localStorage.removeItem('adminToken')
+    localStorage.removeItem('adminUser')
+    
+    // Call logout from context if available
+    if (logout) {
+      logout()
+    }
+    
+    // Navigate to home
+    navigate('/')
     setIsMenuOpen(false)
   }
 
@@ -56,6 +95,20 @@ const Navbar = () => {
               </button>
             ))}
             
+            {/* Role-based navigation items */}
+            {roleBasedItems.map((item) => (
+              <button
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                className={`nav-link flex items-center gap-1 ${
+                  isActivePath(item.path) ? 'text-blue-600 font-semibold' : ''
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+            
             {/* Admin Access */}
             {isAdmin && (
               <button
@@ -70,12 +123,28 @@ const Navbar = () => {
               </button>
             )}
             
-            <button 
-              onClick={() => handleNavigation('/signin')}
-              className="btn btn-primary"
-            >
-              Sign In
-            </button>
+            {/* Authentication buttons */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-gray-600">
+                  Welcome, {currentUser?.first_name || currentUser?.name || 'User'}
+                </span>
+                <button 
+                  onClick={handleLogout}
+                  className="btn btn-secondary flex items-center gap-2"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => handleNavigation('/signin')}
+                className="btn btn-primary"
+              >
+                Sign In
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -106,6 +175,20 @@ const Navbar = () => {
                 </button>
               ))}
               
+              {/* Role-based navigation items */}
+              {roleBasedItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`nav-link text-left flex items-center gap-2 ${
+                    isActivePath(item.path) ? 'text-blue-600 font-semibold' : ''
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+              
               {/* Mobile Admin Access */}
               {isAdmin && (
                 <button
@@ -119,12 +202,28 @@ const Navbar = () => {
                 </button>
               )}
               
-              <button 
-                onClick={() => handleNavigation('/signin')}
-                className="btn btn-primary mt-4"
-              >
-                Sign In
-              </button>
+              {/* Mobile Authentication buttons */}
+              {isAuthenticated ? (
+                <div className="pt-4 border-t border-gray-200 mt-4">
+                  <div className="text-sm text-gray-600 mb-2">
+                    Welcome, {currentUser?.first_name || currentUser?.name || 'User'}
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="btn btn-secondary w-full flex items-center justify-center gap-2"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => handleNavigation('/signin')}
+                  className="btn btn-primary mt-4"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
           </div>
         )}
