@@ -11,7 +11,7 @@ const SignInPage = () => {
   const [error, setError] = useState('')
   
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, setUser } = useAuth()
 
   const handleChange = (e) => {
     setFormData({
@@ -46,9 +46,9 @@ const SignInPage = () => {
       localStorage.setItem('authToken', data.token)
       localStorage.setItem('user', JSON.stringify(data.user))
       
-      // Update auth context
-      if (login) {
-        login(data.user, data.token)
+      // Update auth context - set user directly instead of calling login
+      if (setUser) {
+        setUser(data.user)
       }
 
       // Redirect to home page

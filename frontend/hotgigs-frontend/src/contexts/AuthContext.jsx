@@ -19,27 +19,33 @@ export const AuthProvider = ({ children }) => {
   // Check for existing token on app load
   useEffect(() => {
     const token = localStorage.getItem('authToken')
-    if (token) {
-      // Set token in API headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // Verify token and get user data
-      getCurrentUser()
-    } else {
-      setLoading(false)
+    const userData = localStorage.getItem('user')
+    
+    if (token && userData) {
+      try {
+        // Set token in API headers
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        
+        // Parse and set user data
+        const parsedUser = JSON.parse(userData)
+        setUser(parsedUser)
+        
+        console.log('🔄 AuthContext: Restored user session', parsedUser)
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error)
+        // Clear invalid data
+        localStorage.removeItem('authToken')
+        localStorage.removeItem('user')
+      }
     }
+    
+    setLoading(false)
   }, [])
 
   const getCurrentUser = async () => {
-    try {
-      const response = await api.get('/auth/me')
-      setUser(response.data.user)
-    } catch (error) {
-      console.error('Failed to get current user:', error)
-      // Token might be invalid, remove it
-      logout()
-    } finally {
-      setLoading(false)
-    }
+    // This method is no longer needed since we store user data in localStorage
+    // But keeping it for potential future use
+    return user
   }
 
   const login = async (email, password) => {
@@ -167,6 +173,7 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    setUser,
     loading,
     login,
     register,

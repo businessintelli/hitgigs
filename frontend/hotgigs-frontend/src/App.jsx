@@ -14,6 +14,8 @@ import StatusDashboard from './pages/StatusDashboard'
 import SavedJobsPage from './pages/SavedJobsPage'
 import MyApplicationsPage from './pages/MyApplicationsPage'
 import CompanyDashboard from './pages/CompanyDashboard'
+import PostJobPage from './pages/PostJobPage'
+import ApplicationsPage from './pages/ApplicationsPage'
 import AdminLogin from './pages/AdminLogin'
 import AdminDashboard from './pages/AdminDashboard'
 
@@ -25,19 +27,24 @@ import Footer from './components/layout/Footer'
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const token = requireAdmin 
     ? localStorage.getItem('adminToken')
-    : localStorage.getItem('userToken')
+    : localStorage.getItem('authToken')
   
   const userData = requireAdmin
     ? localStorage.getItem('adminUser')
-    : localStorage.getItem('userData')
+    : localStorage.getItem('user')
 
   if (!token || !userData) {
     return <Navigate to={requireAdmin ? "/admin/login" : "/signin"} replace />
   }
 
   if (requireAdmin) {
-    const user = JSON.parse(userData)
-    if (!user.is_admin) {
+    try {
+      const user = JSON.parse(userData)
+      if (!user.is_admin) {
+        return <Navigate to="/admin/login" replace />
+      }
+    } catch (error) {
+      console.error('Error parsing admin user data:', error)
       return <Navigate to="/admin/login" replace />
     }
   }
@@ -118,6 +125,22 @@ function App() {
                 <Layout>
                   <ProtectedRoute>
                     <CompanyDashboard />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              <Route path="/post-job" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <PostJobPage />
+                  </ProtectedRoute>
+                </Layout>
+              } />
+
+              <Route path="/applications" element={
+                <Layout>
+                  <ProtectedRoute>
+                    <ApplicationsPage />
                   </ProtectedRoute>
                 </Layout>
               } />
