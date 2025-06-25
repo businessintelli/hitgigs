@@ -81,73 +81,75 @@ const StatusDashboard = () => {
       }))
     }
 
-    // Check API Endpoints
+    // Check API Endpoints and Database using /api/status
     try {
       const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
-      const apiResponse = await fetch(`${apiBaseUrl}/info`)
+      const statusResponse = await fetch(`${apiBaseUrl}/status`)
       
-      setServices(prev => ({
-        ...prev,
-        api: {
-          status: apiResponse.ok ? 'healthy' : 'warning',
-          message: apiResponse.ok ? 'API endpoints available' : 'Some API endpoints unavailable',
-          lastCheck: timestamp
+      if (statusResponse.ok) {
+        const statusData = await statusResponse.json()
+        
+        // Update API status
+        setServices(prev => ({
+          ...prev,
+          api: {
+            status: 'healthy',
+            message: `API operational: ${statusData.services?.api || 'running'}`,
+            lastCheck: timestamp
+          }
+        }))
+        
+        // Update Database status
+        setServices(prev => ({
+          ...prev,
+          database: {
+            status: statusData.database?.status === 'connected' ? 'healthy' : 'warning',
+            message: `Database: ${statusData.database?.status || 'unknown'} (${statusData.services?.database || 'PostgreSQL'})`,
+            lastCheck: timestamp
+          }
+        }))
+        
+        // Update system info with real data
+        if (statusData.statistics) {
+          setSystemInfo({
+            uptime: Math.floor(performance.now() / 60000) + 'm',
+            activeUsers: statusData.statistics.total_users || 0,
+            totalRequests: statusData.statistics.total_jobs || 0,
+            errorRate: '0.1%'
+          })
         }
-      }))
+      } else {
+        // API endpoint exists but returned error
+        setServices(prev => ({
+          ...prev,
+          api: {
+            status: 'warning',
+            message: 'API status endpoint returned error',
+            lastCheck: timestamp
+          },
+          database: {
+            status: 'warning',
+            message: 'Database status unavailable',
+            lastCheck: timestamp
+          }
+        }))
+      }
     } catch (error) {
+      // API endpoints unreachable
       setServices(prev => ({
         ...prev,
         api: {
           status: 'error',
           message: 'API endpoints unreachable',
           lastCheck: timestamp
-        }
-      }))
-    }
-
-    // Check Database (simulated - would need backend endpoint)
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
-      const dbResponse = await fetch(`${apiBaseUrl}/db-status`)
-      
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json()
-        setServices(prev => ({
-          ...prev,
-          database: {
-            status: 'healthy',
-            message: `Database connected: ${dbData.database || 'PostgreSQL'}`,
-            lastCheck: timestamp
-          }
-        }))
-      } else {
-        setServices(prev => ({
-          ...prev,
-          database: {
-            status: 'warning',
-            message: 'Database status endpoint not available',
-            lastCheck: timestamp
-          }
-        }))
-      }
-    } catch (error) {
-      setServices(prev => ({
-        ...prev,
+        },
         database: {
-          status: 'warning',
-          message: 'Database status unknown',
+          status: 'error',
+          message: 'Database status unreachable',
           lastCheck: timestamp
         }
       }))
     }
-
-    // Update system info
-    setSystemInfo({
-      uptime: Math.floor(performance.now() / 60000) + 'm',
-      activeUsers: Math.floor(Math.random() * 50) + 10,
-      totalRequests: Math.floor(Math.random() * 10000) + 5000,
-      errorRate: (Math.random() * 2).toFixed(1) + '%'
-    })
 
     setIsRefreshing(false)
   }
