@@ -1,284 +1,209 @@
-# HotGigs.ai Diagnostic Tools
+# HotGigs.ai Service Management Scripts
 
-This directory contains diagnostic tools to help troubleshoot local development environment issues with the HotGigs.ai platform.
+This directory contains comprehensive scripts for managing the HotGigs.ai platform services.
 
-## 🛠️ Available Tools
+## 🚀 Quick Start
 
-### 1. Quick Diagnostic (`quick-diagnostic.sh`)
-**Use when:** You need immediate feedback about your local environment
-
-**What it does:**
-- ✅ Quick system check (Node.js, Python, pnpm versions)
-- ✅ Service status (frontend/backend running on which ports)
-- ✅ Basic connectivity tests
-- ✅ Key configuration files check
-- ✅ Environment variables verification
-- ✅ Instant recommendations
-
-**Usage:**
+### Start Everything
 ```bash
-./scripts/quick-diagnostic.sh
+./scripts/start-all.sh
 ```
 
-**Output:** Terminal display with colored status indicators
-
----
-
-### 2. Comprehensive Diagnostic (`local-diagnostic.sh`)
-**Use when:** You need detailed information for support requests
-
-**What it does:**
-- 📊 Complete system information
-- 📦 All dependency versions and configurations
-- 🔧 Detailed service analysis
-- 🌐 Network connectivity tests
-- 📁 Project structure analysis
-- 📝 Configuration file contents
-- 🔍 Log file analysis
-- 📋 Environment variable dump
-
-**Usage:**
+### Stop Everything
 ```bash
-./scripts/local-diagnostic.sh
+./scripts/stop-all.sh
 ```
 
-**Output:** Detailed report file (`hotgigs_diagnostic_YYYYMMDD_HHMMSS.txt`)
-
----
-
-## 📋 When to Use Each Tool
-
-### Use Quick Diagnostic When:
-- ❓ Services aren't starting
-- ❓ Quick status check needed
-- ❓ Immediate troubleshooting
-- ❓ Verifying basic setup
-
-### Use Comprehensive Diagnostic When:
-- 🐛 Complex issues requiring support
-- 🐛 Environment comparison needed
-- 🐛 Detailed analysis required
-- 🐛 Preparing support request
-
----
-
-## 🚀 Quick Start Guide
-
-### Step 1: Navigate to Project
+### Check Status
 ```bash
-cd /path/to/your/hitgigs
+./scripts/status-all.sh
 ```
 
-### Step 2: Start Services (Recommended)
-**Terminal 1 - Backend:**
+## 📋 Available Scripts
+
+### 🔄 Combined Operations
+- **`start-all.sh`** - Start both backend and frontend services
+- **`stop-all.sh`** - Stop both backend and frontend services  
+- **`status-all.sh`** - Check status of all services
+
+### 📡 Backend Management
+- **`start-backend.sh`** - Start the FastAPI backend server
+- **`stop-backend.sh`** - Stop the backend server
+
+### 🌐 Frontend Management
+- **`start-frontend.sh`** - Start the React frontend development server
+- **`stop-frontend.sh`** - Stop the frontend server
+
+### 🛠️ Legacy/Utility Scripts
+- **`setup-enterprise-admin.sh`** - Complete system setup (legacy)
+- **`fix-*.sh`** - Various diagnostic and fix scripts
+
+## 🎯 Script Features
+
+### ✅ Robust Process Management
+- **PID file tracking** - Proper process identification
+- **Graceful shutdown** - SIGTERM before SIGKILL
+- **Port conflict detection** - Prevents startup conflicts
+- **Orphan process cleanup** - Removes stale processes
+
+### ✅ Comprehensive Error Handling
+- **Dependency checking** - Verifies Node.js, Python, package managers
+- **Directory validation** - Ensures correct working directory
+- **Service connectivity** - Tests HTTP endpoints
+- **Detailed error messages** - Clear troubleshooting information
+
+### ✅ Professional Output
+- **Color-coded status** - Green (success), Yellow (warning), Red (error)
+- **Progress indicators** - Real-time feedback during operations
+- **Detailed summaries** - Complete status information
+- **Log file management** - Centralized logging
+
+### ✅ Smart Features
+- **Auto-dependency installation** - Installs missing packages
+- **Environment file creation** - Sets up configuration automatically
+- **Database initialization** - Prepares SQLite database
+- **Health checking** - Verifies service connectivity
+
+## 📊 Service Information
+
+### Backend Service
+- **Port**: 8000
+- **URL**: http://localhost:8000
+- **Health Check**: http://localhost:8000/api/health
+- **API Docs**: http://localhost:8000/docs
+- **Log File**: `backend/hotgigs-api/backend.log`
+- **PID File**: `backend/hotgigs-api/backend.pid`
+
+### Frontend Service
+- **Port**: 3002
+- **URL**: http://localhost:3002
+- **Admin Panel**: http://localhost:3002/admin/login
+- **Status Dashboard**: http://localhost:3002/status
+- **Log File**: `frontend/hotgigs-frontend/frontend.log`
+- **PID File**: `frontend/hotgigs-frontend/frontend.pid`
+
+## 🔐 Default Credentials
+
+### Super Admin
+- **Email**: admin@hotgigs.ai
+- **Password**: admin123
+
+### Demo Accounts
+- **Job Seeker**: john@example.com / user123
+- **Company**: hr@techcorp.com / company123
+- **Recruiter**: alice@recruiter.com / recruiter123
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### Port Already in Use
 ```bash
-cd backend/hotgigs-api
-source venv/bin/activate
-python src/main.py
+# Check what's using the port
+lsof -i :8000  # Backend
+lsof -i :3002  # Frontend
+
+# Stop the service
+./scripts/stop-all.sh
 ```
 
-**Terminal 2 - Frontend:**
+#### Stale Processes
 ```bash
-cd frontend/hotgigs-frontend
-pnpm dev
+# Clean up all processes
+./scripts/stop-all.sh
+
+# Check status
+./scripts/status-all.sh
 ```
 
-### Step 3: Run Diagnostic
-**For quick check:**
+#### Permission Issues
 ```bash
-./scripts/quick-diagnostic.sh
+# Make scripts executable
+chmod +x scripts/*.sh
 ```
 
-**For detailed report:**
+#### Database Issues
 ```bash
-./scripts/local-diagnostic.sh
+# Backend will auto-initialize database
+# Check logs for details
+tail -f backend/hotgigs-api/backend.log
 ```
 
----
+### Log Files
 
-## 📊 Sample Quick Diagnostic Output
-
-```
-⚡ Quick HotGigs.ai Diagnostic
-=============================
-
-🔍 Checking system basics...
-System: Darwin 23.1.0
-Node.js: v20.10.0
-Python: Python 3.11.6
-pnpm: 8.10.5
-
-🌐 Checking services...
-✅ Frontend (port 3002): Running
-✅ Backend (port 8000): Running
-
-🧪 Testing frontend...
-✅ Frontend HTTP: 200 (OK)
-
-🧪 Testing backend...
-✅ Backend Health: 200 (OK)
-   Response: {"status":"healthy","service":"HotGigs.ai API"}
-
-📁 Checking key files...
-✅ Frontend package.json: Found
-✅ Frontend .env: Found
-✅ Vite config: Found
-✅ Tailwind config: Found
-✅ Main CSS file: Found
-✅ Backend requirements: Found
-✅ Backend .env: Found
-✅ Backend main file: Found
-
-🔧 Checking environment...
-Frontend API URL: http://localhost:8000/api
-Backend Port: 8000
-
-⚡ Quick diagnostic complete!
-```
-
----
-
-## 📁 Comprehensive Diagnostic Report Contents
-
-The detailed diagnostic report includes:
-
-### System Information
-- macOS version and system details
-- Hardware information
-- Current user and permissions
-
-### Development Environment
-- Node.js, npm, pnpm versions and locations
-- Python and pip versions
-- Git configuration and repository status
-
-### Project Analysis
-- Directory structure
-- File permissions
-- Configuration file contents
-- Environment variables
-
-### Service Status
-- Running processes
-- Port usage analysis
-- Network connectivity tests
-- API response testing
-
-### Dependencies
-- Frontend package.json and lock files
-- Backend requirements and installed packages
-- Version compatibility check
-
-### Logs and Debugging
-- Recent error logs
-- Build output
-- Console errors
-- HTTP response analysis
-
----
-
-## 🔧 Troubleshooting the Tools
-
-### Permission Denied
+#### View Real-time Logs
 ```bash
-chmod +x scripts/quick-diagnostic.sh
-chmod +x scripts/local-diagnostic.sh
+# Backend logs
+tail -f backend/hotgigs-api/backend.log
+
+# Frontend logs  
+tail -f frontend/hotgigs-frontend/frontend.log
 ```
 
-### Script Not Found
-Ensure you're in the project root:
+#### Check Service Status
 ```bash
-ls scripts/
+# Comprehensive status check
+./scripts/status-all.sh
+
+# Individual service status
+ps aux | grep python  # Backend
+ps aux | grep node    # Frontend
 ```
 
-### Services Not Detected
-The tools work best when services are running, but provide useful information regardless.
+## 🔧 Advanced Usage
 
----
+### Custom Ports
+Edit the port variables in the scripts:
+- `PORT=8000` (backend)
+- `PORT=3002` (frontend)
 
-## 🎯 Common Issues Detected
+### Development Mode
+The scripts automatically:
+- Use development servers (FastAPI with reload, Vite dev server)
+- Enable hot reloading
+- Provide detailed error messages
+- Create development environment files
 
-### Configuration Problems
-- Missing environment files
-- Incorrect API URLs
-- Missing Tailwind configuration
-- Wrong port configurations
+### Production Considerations
+For production deployment:
+- Use proper process managers (PM2, systemd)
+- Configure reverse proxy (nginx)
+- Set up SSL certificates
+- Use production environment variables
+- Implement proper logging rotation
 
-### Dependency Issues
-- Version mismatches
-- Missing packages
-- Lock file conflicts
-- Path resolution problems
+## 📁 Directory Structure
 
-### Service Issues
-- Port conflicts
-- CORS problems
-- API connectivity failures
-- Authentication errors
-
-### Build Problems
-- Compilation errors
-- Missing build tools
-- Asset loading issues
-- CSS processing problems
-
----
-
-## 📤 Sharing Diagnostic Information
-
-### For Support Requests
-1. Run comprehensive diagnostic: `./scripts/local-diagnostic.sh`
-2. Upload the generated `.txt` file
-3. Include specific error messages
-4. Describe what's working vs. not working
-
-### Privacy Considerations
-Review the diagnostic file before sharing:
-- Remove sensitive API keys
-- Check for personal information
-- Verify no private data is included
-
----
-
-## 🔄 Regular Maintenance
-
-### Weekly Checks
-```bash
-./scripts/quick-diagnostic.sh
+```
+scripts/
+├── start-all.sh           # Start both services
+├── stop-all.sh            # Stop both services
+├── status-all.sh          # Check all service status
+├── start-backend.sh       # Start backend only
+├── stop-backend.sh        # Stop backend only
+├── start-frontend.sh      # Start frontend only
+├── stop-frontend.sh       # Stop frontend only
+├── setup-enterprise-admin.sh  # Legacy setup script
+└── README.md              # This file
 ```
 
-### Before Major Changes
-```bash
-./scripts/local-diagnostic.sh
-```
+## 🎉 Success Indicators
 
-### After Environment Updates
-```bash
-./scripts/quick-diagnostic.sh
-```
+When everything is working correctly:
+- ✅ Backend responds at http://localhost:8000/api/health
+- ✅ Frontend loads at http://localhost:3002
+- ✅ Admin panel accessible at http://localhost:3002/admin/login
+- ✅ Database connectivity working
+- ✅ No error messages in logs
 
----
+## 📞 Support
 
-## 📞 Getting Help
+If you encounter issues:
+1. Check `./scripts/status-all.sh` for service status
+2. Review log files for error details
+3. Ensure all dependencies are installed
+4. Verify you're in the correct directory
+5. Check port availability
 
-1. **Run diagnostics first** - Use the tools before asking for help
-2. **Include diagnostic output** - Attach the report file
-3. **Describe the issue** - What you expected vs. what happened
-4. **Include steps to reproduce** - How to recreate the problem
-5. **Mention your environment** - macOS version, hardware, etc.
-
----
-
-## 🔮 Future Enhancements
-
-Planned improvements:
-- Automated fix suggestions
-- Performance benchmarking
-- Security vulnerability scanning
-- Dependency update recommendations
-- Integration with CI/CD pipelines
-
----
-
-*These diagnostic tools are designed to make troubleshooting HotGigs.ai development issues faster and more effective. They collect the exact information needed to quickly identify and resolve problems.*
+The scripts are designed to be self-diagnosing and provide clear error messages to help resolve issues quickly.
 
