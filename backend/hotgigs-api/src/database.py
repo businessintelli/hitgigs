@@ -269,7 +269,62 @@ class SupabaseService:
             logger.error(f"Error getting job applications: {str(e)}")
             raise
     
-    # Health check
+    # Health check and system stats
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Get system statistics"""
+        try:
+            # Get basic counts from different tables
+            stats = {}
+            
+            # User stats
+            try:
+                user_count = self.count_records('users')
+                stats['total_users'] = user_count
+                stats['active_users'] = user_count  # Assuming all users are active for now
+            except:
+                stats['total_users'] = 0
+                stats['active_users'] = 0
+            
+            # Job stats
+            try:
+                job_count = self.count_records('jobs')
+                active_job_count = self.count_records('jobs', {'status': 'active'})
+                stats['total_jobs'] = job_count
+                stats['active_jobs'] = active_job_count
+            except:
+                stats['total_jobs'] = 0
+                stats['active_jobs'] = 0
+            
+            # Company stats
+            try:
+                company_count = self.count_records('companies')
+                stats['total_companies'] = company_count
+                stats['active_companies'] = company_count  # Assuming all companies are active
+            except:
+                stats['total_companies'] = 0
+                stats['active_companies'] = 0
+            
+            # Application stats
+            try:
+                application_count = self.count_records('job_applications')
+                stats['total_applications'] = application_count
+            except:
+                stats['total_applications'] = 0
+            
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error getting system stats: {str(e)}")
+            return {
+                'total_users': 0,
+                'active_users': 0,
+                'total_jobs': 0,
+                'active_jobs': 0,
+                'total_companies': 0,
+                'active_companies': 0,
+                'total_applications': 0
+            }
+    
     def health_check(self) -> Dict[str, Any]:
         """Check database connection and basic functionality"""
         try:
