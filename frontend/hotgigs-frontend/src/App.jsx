@@ -45,6 +45,12 @@ import PrivacySettingsPage from './pages/PrivacySettingsPage'
 import AdminDashboard from './pages/AdminDashboard'
 import SuperAdminDashboard from './pages/SuperAdminDashboard'
 
+// Import AI-related pages
+import AIInterviewPage from './pages/AIInterviewPage'
+import AIJobMatchingPage from './pages/AIJobMatchingPage'
+import CareerInsightsPage from './pages/CareerInsightsPage'
+import SkillAssessmentPage from './pages/SkillAssessmentPage'
+
 // Import components
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
@@ -109,9 +115,9 @@ function App() {
               } />
               
               <Route path="/jobs" element={
-                <Layout>
+                <DashboardLayout>
                   <JobsPage />
-                </Layout>
+                </DashboardLayout>
               } />
               
               <Route path="/about" element={
@@ -201,6 +207,39 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <TaskManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* AI-Powered Feature Routes */}
+              <Route path="/ai-interview" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AIInterviewPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/ai-matching" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AIJobMatchingPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/career-insights" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CareerInsightsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/skill-assessment" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SkillAssessmentPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

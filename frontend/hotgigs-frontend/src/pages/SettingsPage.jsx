@@ -37,7 +37,8 @@ import {
   CreditCard,
   Database,
   Activity,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react'
 
 const SettingsPage = () => {
