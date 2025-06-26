@@ -55,6 +55,8 @@ import SkillAssessmentPage from './pages/SkillAssessmentPage'
 import CompanyProfilePage from './pages/CompanyProfilePage'
 import TeamManagementPage from './pages/TeamManagementPage'
 import DataExportPage from './pages/DataExportPage'
+import MyJobsPage from './pages/MyJobsPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 
 // Import components
 import Navbar from './components/layout/Navbar'
@@ -270,6 +272,22 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <DataExportPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/my-jobs" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <MyJobsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <AnalyticsPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
