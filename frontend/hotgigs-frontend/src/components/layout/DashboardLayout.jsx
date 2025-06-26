@@ -30,7 +30,8 @@ import {
   Database,
   Activity,
   MessageSquare,
-  CheckSquare
+  CheckSquare,
+  Download
 } from 'lucide-react'
 
 const DashboardLayout = ({ children }) => {
