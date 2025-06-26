@@ -51,6 +51,11 @@ import AIJobMatchingPage from './pages/AIJobMatchingPage'
 import CareerInsightsPage from './pages/CareerInsightsPage'
 import SkillAssessmentPage from './pages/SkillAssessmentPage'
 
+// Import company-related pages
+import CompanyProfilePage from './pages/CompanyProfilePage'
+import TeamManagementPage from './pages/TeamManagementPage'
+import DataExportPage from './pages/DataExportPage'
+
 // Import components
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
@@ -240,6 +245,31 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <SkillAssessmentPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Company Management Routes */}
+              <Route path="/company-profile" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CompanyProfilePage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/team-management" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <TeamManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/data-export" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <DataExportPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
