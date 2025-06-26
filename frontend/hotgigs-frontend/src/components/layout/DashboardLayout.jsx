@@ -28,7 +28,8 @@ import {
   Zap,
   Shield,
   Database,
-  Activity
+  Activity,
+  MessageSquare
 } from 'lucide-react'
 
 const DashboardLayout = ({ children }) => {
