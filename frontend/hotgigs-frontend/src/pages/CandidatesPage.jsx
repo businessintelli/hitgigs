@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { 
   Search, 
   Filter, 
@@ -45,1375 +46,997 @@ import {
   Globe, 
   Linkedin, 
   Github, 
-  ExternalLink 
+  ExternalLink,
+  Flame,
+  UserCheck,
+  UserX,
+  Send,
+  MessageSquare,
+  Settings,
+  BookOpen,
+  Activity,
+  BarChart3,
+  PieChart,
+  TrendingDown
 } from 'lucide-react'
 
 const CandidatesPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [candidates, setCandidates] = useState([])
-  const [filteredCandidates, setFilteredCandidates] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
-  const [viewMode, setViewMode] = useState('grid') // list or grid
-  const [showFilters, setShowFilters] = useState(false)
-  const [selectedCandidates, setSelectedCandidates] = useState(new Set())
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(15)
-  
-  // Filter states
-  const [filters, setFilters] = useState({
-    location: '',
-    experience: 'all',
-    skills: '',
-    education: 'all',
-    availability: 'all',
-    salaryRange: 'all',
-    domain: 'all',
-    status: 'all'
-  })
-  
-  const [sortBy, setSortBy] = useState('relevance')
+  const [hotListCandidates, setHotListCandidates] = useState([])
+  const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCandidates, setSelectedCandidates] = useState([])
+  const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
+  const [sortBy, setSortBy] = useState('name')
+  const [sortOrder, setSortOrder] = useState('asc')
+  const [filterBy, setFilterBy] = useState('all')
+  const [showFilters, setShowFilters] = useState(false)
+  const [activeTab, setActiveTab] = useState('all') // 'all' or 'hotlist'
+  const [showAddCandidateModal, setShowAddCandidateModal] = useState(false)
+  const [showBulkActions, setShowBulkActions] = useState(false)
+
+  // Get initial tab from URL params
+  useEffect(() => {
+    const tab = searchParams.get('tab') || 'all'
+    setActiveTab(tab)
+  }, [searchParams])
 
   useEffect(() => {
     loadCandidates()
+    loadHotListCandidates()
   }, [])
 
-  useEffect(() => {
-    filterAndSortCandidates()
-  }, [candidates, filters, sortBy, searchTerm])
-
   const loadCandidates = async () => {
-    setIsLoading(true)
     try {
-      // Simulate API call to load candidates
+      // Sample candidate data - in real implementation, fetch from API
       const sampleCandidates = [
         {
           id: 1,
           name: 'John Smith',
           email: 'john.smith@email.com',
-          phone: '+1 (555) 123-4567',
+          phone: '+1-555-0123',
           location: 'San Francisco, CA',
           title: 'Senior React Developer',
-          experience: 5,
-          skills: ['React', 'JavaScript', 'TypeScript', 'Node.js', 'Python', 'AWS'],
-          education: 'Bachelor\'s in Computer Science',
-          university: 'Stanford University',
-          currentSalary: 120000,
-          expectedSalary: 150000,
-          availability: 'Immediately',
-          status: 'Active',
-          profilePicture: '/api/placeholder/64/64',
-          resumeUrl: '/resumes/john-smith-resume.pdf',
-          linkedinUrl: 'https://linkedin.com/in/johnsmith',
-          githubUrl: 'https://github.com/johnsmith',
-          portfolioUrl: 'https://johnsmith.dev',
-          lastActive: '2024-01-15',
-          joinDate: '2023-06-15',
-          matchScore: 95,
+          experience: '5 years',
+          skills: ['React', 'JavaScript', 'TypeScript', 'Redux', 'Node.js'],
+          education: 'BS Computer Science - Stanford University',
+          salary_expectation: '$130,000 - $150,000',
+          availability: 'Available',
+          status: 'active',
+          source: 'manual',
+          added_date: '2024-01-15',
+          last_active: '2024-01-20',
           applications: 12,
           interviews: 5,
           offers: 2,
-          domain: ['Technology', 'E-commerce'],
-          workExperience: [
-            {
-              company: 'TechCorp Inc.',
-              position: 'Senior Frontend Developer',
-              duration: '2021-Present',
-              description: 'Led frontend development team, built scalable React applications'
-            },
-            {
-              company: 'StartupXYZ',
-              position: 'Frontend Developer',
-              duration: '2019-2021',
-              description: 'Developed user interfaces for web applications'
-            }
-          ],
-          certifications: ['AWS Certified Developer', 'React Professional'],
-          languages: ['English (Native)', 'Spanish (Conversational)'],
-          rating: 4.8,
-          reviews: 15,
-          isVerified: true,
-          isTopTalent: true
+          rejections: 3,
+          match_score: 92,
+          resume_url: '/resumes/john-smith.pdf',
+          portfolio_url: 'https://johnsmith.dev',
+          linkedin_url: 'https://linkedin.com/in/johnsmith',
+          github_url: 'https://github.com/johnsmith',
+          notes: 'Excellent React developer with strong problem-solving skills',
+          tags: ['top-performer', 'react-expert'],
+          domain_expertise: ['E-commerce', 'FinTech']
         },
         {
           id: 2,
           name: 'Sarah Johnson',
           email: 'sarah.johnson@email.com',
-          phone: '+1 (555) 234-5678',
-          location: 'New York, NY',
+          phone: '+1-555-0124',
+          location: 'Remote',
           title: 'Full Stack Developer',
-          experience: 3,
-          skills: ['Python', 'Django', 'React', 'PostgreSQL', 'Docker', 'Kubernetes'],
-          education: 'Master\'s in Software Engineering',
-          university: 'MIT',
-          currentSalary: 95000,
-          expectedSalary: 120000,
-          availability: '2 weeks notice',
-          status: 'Active',
-          profilePicture: '/api/placeholder/64/64',
-          resumeUrl: '/resumes/sarah-johnson-resume.pdf',
-          linkedinUrl: 'https://linkedin.com/in/sarahjohnson',
-          githubUrl: 'https://github.com/sarahjohnson',
-          portfolioUrl: 'https://sarahjohnson.dev',
-          lastActive: '2024-01-14',
-          joinDate: '2023-08-20',
-          matchScore: 88,
+          experience: '6 years',
+          skills: ['React', 'Node.js', 'Python', 'AWS', 'GraphQL'],
+          education: 'MS Software Engineering - MIT',
+          salary_expectation: '$140,000 - $160,000',
+          availability: 'Available in 2 weeks',
+          status: 'active',
+          source: 'imported',
+          added_date: '2024-01-10',
+          last_active: '2024-01-19',
           applications: 8,
           interviews: 3,
           offers: 1,
-          domain: ['Healthcare', 'Finance'],
-          workExperience: [
-            {
-              company: 'HealthTech Solutions',
-              position: 'Full Stack Developer',
-              duration: '2022-Present',
-              description: 'Built healthcare management systems using Python and React'
-            },
-            {
-              company: 'FinanceApp Inc.',
-              position: 'Junior Developer',
-              duration: '2021-2022',
-              description: 'Developed financial tracking applications'
-            }
-          ],
-          certifications: ['Python Professional', 'Docker Certified'],
-          languages: ['English (Native)', 'French (Fluent)'],
-          rating: 4.6,
-          reviews: 12,
-          isVerified: true,
-          isTopTalent: false
+          rejections: 2,
+          match_score: 89,
+          resume_url: '/resumes/sarah-johnson.pdf',
+          portfolio_url: 'https://sarahjohnson.com',
+          linkedin_url: 'https://linkedin.com/in/sarahjohnson',
+          github_url: 'https://github.com/sarahjohnson',
+          notes: 'Strong full-stack developer with cloud expertise',
+          tags: ['cloud-expert', 'full-stack'],
+          domain_expertise: ['Healthcare', 'E-commerce']
         },
         {
           id: 3,
-          name: 'Michael Chen',
-          email: 'michael.chen@email.com',
-          phone: '+1 (555) 345-6789',
-          location: 'Seattle, WA',
-          title: 'DevOps Engineer',
-          experience: 7,
-          skills: ['AWS', 'Kubernetes', 'Docker', 'Terraform', 'Jenkins', 'Python'],
-          education: 'Bachelor\'s in Computer Engineering',
-          university: 'University of Washington',
-          currentSalary: 140000,
-          expectedSalary: 170000,
-          availability: '1 month notice',
-          status: 'Passive',
-          profilePicture: '/api/placeholder/64/64',
-          resumeUrl: '/resumes/michael-chen-resume.pdf',
-          linkedinUrl: 'https://linkedin.com/in/michaelchen',
-          githubUrl: 'https://github.com/michaelchen',
-          portfolioUrl: null,
-          lastActive: '2024-01-10',
-          joinDate: '2023-04-10',
-          matchScore: 92,
+          name: 'Mike Chen',
+          email: 'mike.chen@email.com',
+          phone: '+1-555-0125',
+          location: 'New York, NY',
+          title: 'Frontend Developer',
+          experience: '4 years',
+          skills: ['React', 'Vue.js', 'TypeScript', 'CSS', 'Figma'],
+          education: 'BS Computer Science - UC Berkeley',
+          salary_expectation: '$110,000 - $130,000',
+          availability: 'Available',
+          status: 'active',
+          source: 'bulk_import',
+          added_date: '2024-01-05',
+          last_active: '2024-01-18',
           applications: 15,
-          interviews: 8,
+          interviews: 7,
           offers: 3,
-          domain: ['Cloud Computing', 'DevOps'],
-          workExperience: [
-            {
-              company: 'CloudTech Solutions',
-              position: 'Senior DevOps Engineer',
-              duration: '2020-Present',
-              description: 'Managed cloud infrastructure and CI/CD pipelines'
-            },
-            {
-              company: 'TechStartup',
-              position: 'DevOps Engineer',
-              duration: '2018-2020',
-              description: 'Built automated deployment systems'
-            }
-          ],
-          certifications: ['AWS Solutions Architect', 'Kubernetes Administrator'],
-          languages: ['English (Native)', 'Mandarin (Native)'],
-          rating: 4.9,
-          reviews: 20,
-          isVerified: true,
-          isTopTalent: true
+          rejections: 5,
+          match_score: 85,
+          resume_url: '/resumes/mike-chen.pdf',
+          portfolio_url: 'https://mikechen.design',
+          linkedin_url: 'https://linkedin.com/in/mikechen',
+          github_url: 'https://github.com/mikechen',
+          notes: 'Creative frontend developer with strong design skills',
+          tags: ['ui-ux', 'creative'],
+          domain_expertise: ['Media', 'Gaming']
         },
         {
           id: 4,
           name: 'Emily Rodriguez',
           email: 'emily.rodriguez@email.com',
-          phone: '+1 (555) 456-7890',
+          phone: '+1-555-0126',
           location: 'Austin, TX',
-          title: 'UX/UI Designer',
-          experience: 4,
-          skills: ['Figma', 'Sketch', 'Adobe XD', 'Prototyping', 'User Research', 'HTML/CSS'],
-          education: 'Bachelor\'s in Design',
-          university: 'Art Institute of Austin',
-          currentSalary: 85000,
-          expectedSalary: 105000,
-          availability: 'Immediately',
-          status: 'Active',
-          profilePicture: '/api/placeholder/64/64',
-          resumeUrl: '/resumes/emily-rodriguez-resume.pdf',
-          linkedinUrl: 'https://linkedin.com/in/emilyrodriguez',
-          githubUrl: null,
-          portfolioUrl: 'https://emilyrodriguez.design',
-          lastActive: '2024-01-16',
-          joinDate: '2023-09-05',
-          matchScore: 85,
-          applications: 10,
+          title: 'DevOps Engineer',
+          experience: '7 years',
+          skills: ['AWS', 'Docker', 'Kubernetes', 'Python', 'Terraform'],
+          education: 'MS Computer Engineering - UT Austin',
+          salary_expectation: '$150,000 - $170,000',
+          availability: 'Available',
+          status: 'active',
+          source: 'applied',
+          added_date: '2024-01-12',
+          last_active: '2024-01-20',
+          applications: 6,
           interviews: 4,
-          offers: 1,
-          domain: ['Design', 'E-commerce'],
-          workExperience: [
-            {
-              company: 'DesignStudio Pro',
-              position: 'Senior UX Designer',
-              duration: '2022-Present',
-              description: 'Led UX design for mobile and web applications'
-            },
-            {
-              company: 'Creative Agency',
-              position: 'UI Designer',
-              duration: '2020-2022',
-              description: 'Designed user interfaces for various clients'
-            }
-          ],
-          certifications: ['Google UX Design Certificate', 'Adobe Certified Expert'],
-          languages: ['English (Native)', 'Spanish (Native)'],
-          rating: 4.7,
-          reviews: 18,
-          isVerified: true,
-          isTopTalent: false
-        },
-        {
-          id: 5,
-          name: 'David Kim',
-          email: 'david.kim@email.com',
-          phone: '+1 (555) 567-8901',
-          location: 'Los Angeles, CA',
-          title: 'Data Scientist',
-          experience: 6,
-          skills: ['Python', 'R', 'Machine Learning', 'TensorFlow', 'SQL', 'Tableau'],
-          education: 'PhD in Data Science',
-          university: 'UCLA',
-          currentSalary: 130000,
-          expectedSalary: 160000,
-          availability: '3 weeks notice',
-          status: 'Active',
-          profilePicture: '/api/placeholder/64/64',
-          resumeUrl: '/resumes/david-kim-resume.pdf',
-          linkedinUrl: 'https://linkedin.com/in/davidkim',
-          githubUrl: 'https://github.com/davidkim',
-          portfolioUrl: 'https://davidkim.ai',
-          lastActive: '2024-01-13',
-          joinDate: '2023-07-12',
-          matchScore: 94,
-          applications: 18,
-          interviews: 9,
-          offers: 4,
-          domain: ['Data Science', 'AI/ML'],
-          workExperience: [
-            {
-              company: 'DataCorp Analytics',
-              position: 'Senior Data Scientist',
-              duration: '2021-Present',
-              description: 'Built predictive models and data pipelines'
-            },
-            {
-              company: 'AI Research Lab',
-              position: 'Data Scientist',
-              duration: '2019-2021',
-              description: 'Conducted research on machine learning algorithms'
-            }
-          ],
-          certifications: ['Google Cloud ML Engineer', 'AWS ML Specialty'],
-          languages: ['English (Fluent)', 'Korean (Native)'],
-          rating: 4.8,
-          reviews: 22,
-          isVerified: true,
-          isTopTalent: true
+          offers: 2,
+          rejections: 1,
+          match_score: 94,
+          resume_url: '/resumes/emily-rodriguez.pdf',
+          portfolio_url: null,
+          linkedin_url: 'https://linkedin.com/in/emilyrodriguez',
+          github_url: 'https://github.com/emilyrodriguez',
+          notes: 'Highly skilled DevOps engineer with extensive cloud experience',
+          tags: ['devops-expert', 'cloud-architect'],
+          domain_expertise: ['FinTech', 'Healthcare']
         }
       ]
-
       setCandidates(sampleCandidates)
     } catch (error) {
       console.error('Failed to load candidates:', error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const filterAndSortCandidates = () => {
-    let filtered = [...candidates]
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(candidate =>
-        candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        candidate.location.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    // Apply location filter
-    if (filters.location) {
-      filtered = filtered.filter(candidate =>
-        candidate.location.toLowerCase().includes(filters.location.toLowerCase())
-      )
-    }
-
-    // Apply experience filter
-    if (filters.experience !== 'all') {
-      const [min, max] = filters.experience.split('-').map(Number)
-      filtered = filtered.filter(candidate => {
-        if (max) {
-          return candidate.experience >= min && candidate.experience <= max
-        } else {
-          return candidate.experience >= min
+  const loadHotListCandidates = async () => {
+    try {
+      // Sample hot list data - bench candidates (existing employees without jobs)
+      const sampleHotList = [
+        {
+          id: 101,
+          name: 'Alex Thompson',
+          email: 'alex.thompson@company.com',
+          phone: '+1-555-0201',
+          location: 'Seattle, WA',
+          title: 'Senior Software Engineer',
+          experience: '8 years',
+          skills: ['Java', 'Spring Boot', 'Microservices', 'AWS', 'React'],
+          current_company: 'TechCorp Inc.',
+          employee_id: 'EMP001',
+          department: 'Engineering',
+          bench_since: '2024-01-01',
+          previous_project: 'E-commerce Platform',
+          availability: 'Immediately Available',
+          status: 'bench',
+          billable_rate: '$85/hour',
+          utilization: '0%',
+          last_project_end: '2023-12-31',
+          skills_rating: 4.5,
+          performance_rating: 4.8,
+          client_feedback: 'Excellent technical skills and communication',
+          certifications: ['AWS Solutions Architect', 'Java Oracle Certified'],
+          domain_expertise: ['E-commerce', 'FinTech', 'Healthcare']
+        },
+        {
+          id: 102,
+          name: 'Lisa Wang',
+          email: 'lisa.wang@company.com',
+          phone: '+1-555-0202',
+          location: 'San Francisco, CA',
+          title: 'UI/UX Designer',
+          experience: '5 years',
+          skills: ['Figma', 'Adobe Creative Suite', 'User Research', 'Prototyping'],
+          current_company: 'TechCorp Inc.',
+          employee_id: 'EMP002',
+          department: 'Design',
+          bench_since: '2024-01-10',
+          previous_project: 'Mobile Banking App',
+          availability: 'Available in 1 week',
+          status: 'bench',
+          billable_rate: '$75/hour',
+          utilization: '0%',
+          last_project_end: '2024-01-05',
+          skills_rating: 4.7,
+          performance_rating: 4.6,
+          client_feedback: 'Creative designer with strong user-centric approach',
+          certifications: ['Google UX Design Certificate'],
+          domain_expertise: ['FinTech', 'Healthcare', 'E-commerce']
+        },
+        {
+          id: 103,
+          name: 'Robert Kim',
+          email: 'robert.kim@company.com',
+          phone: '+1-555-0203',
+          location: 'Chicago, IL',
+          title: 'Data Scientist',
+          experience: '6 years',
+          skills: ['Python', 'Machine Learning', 'TensorFlow', 'SQL', 'Tableau'],
+          current_company: 'TechCorp Inc.',
+          employee_id: 'EMP003',
+          department: 'Data Science',
+          bench_since: '2023-12-15',
+          previous_project: 'Predictive Analytics Platform',
+          availability: 'Immediately Available',
+          status: 'bench',
+          billable_rate: '$90/hour',
+          utilization: '0%',
+          last_project_end: '2023-12-10',
+          skills_rating: 4.8,
+          performance_rating: 4.9,
+          client_feedback: 'Outstanding analytical skills and business acumen',
+          certifications: ['AWS Machine Learning Specialty', 'Google Cloud Professional'],
+          domain_expertise: ['FinTech', 'Healthcare', 'Retail']
         }
-      })
+      ]
+      setHotListCandidates(sampleHotList)
+    } catch (error) {
+      console.error('Failed to load hot list candidates:', error)
     }
-
-    // Apply skills filter
-    if (filters.skills) {
-      const skillsArray = filters.skills.toLowerCase().split(',').map(s => s.trim())
-      filtered = filtered.filter(candidate =>
-        skillsArray.some(skill =>
-          candidate.skills.some(candidateSkill => candidateSkill.toLowerCase().includes(skill))
-        )
-      )
-    }
-
-    // Apply education filter
-    if (filters.education !== 'all') {
-      filtered = filtered.filter(candidate =>
-        candidate.education.toLowerCase().includes(filters.education.toLowerCase())
-      )
-    }
-
-    // Apply availability filter
-    if (filters.availability !== 'all') {
-      filtered = filtered.filter(candidate => candidate.availability === filters.availability)
-    }
-
-    // Apply salary range filter
-    if (filters.salaryRange !== 'all') {
-      const [min, max] = filters.salaryRange.split('-').map(Number)
-      filtered = filtered.filter(candidate => {
-        const salary = candidate.expectedSalary || candidate.currentSalary
-        if (max) {
-          return salary >= min && salary <= max
-        } else {
-          return salary >= min
-        }
-      })
-    }
-
-    // Apply domain filter
-    if (filters.domain !== 'all') {
-      filtered = filtered.filter(candidate =>
-        candidate.domain.some(d => d.toLowerCase().includes(filters.domain.toLowerCase()))
-      )
-    }
-
-    // Apply status filter
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(candidate => candidate.status === filters.status)
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'relevance':
-          return (b.matchScore || 0) - (a.matchScore || 0)
-        case 'name_asc':
-          return a.name.localeCompare(b.name)
-        case 'name_desc':
-          return b.name.localeCompare(a.name)
-        case 'experience_desc':
-          return b.experience - a.experience
-        case 'experience_asc':
-          return a.experience - b.experience
-        case 'salary_desc':
-          return (b.expectedSalary || b.currentSalary) - (a.expectedSalary || a.currentSalary)
-        case 'salary_asc':
-          return (a.expectedSalary || a.currentSalary) - (b.expectedSalary || b.currentSalary)
-        case 'date_desc':
-          return new Date(b.joinDate) - new Date(a.joinDate)
-        case 'date_asc':
-          return new Date(a.joinDate) - new Date(b.joinDate)
-        default:
-          return 0
-      }
-    })
-
-    setFilteredCandidates(filtered)
-    setCurrentPage(1) // Reset to first page when filters change
   }
 
-  const handleSelectCandidate = (candidateId) => {
-    const newSelected = new Set(selectedCandidates)
-    if (newSelected.has(candidateId)) {
-      newSelected.delete(candidateId)
-    } else {
-      newSelected.add(candidateId)
-    }
-    setSelectedCandidates(newSelected)
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    setSearchParams({ tab })
+    setSelectedCandidates([])
+  }
+
+  const handleCandidateSelect = (candidateId) => {
+    setSelectedCandidates(prev => 
+      prev.includes(candidateId) 
+        ? prev.filter(id => id !== candidateId)
+        : [...prev, candidateId]
+    )
   }
 
   const handleSelectAll = () => {
-    if (selectedCandidates.size === paginatedCandidates.length) {
-      setSelectedCandidates(new Set())
-    } else {
-      setSelectedCandidates(new Set(paginatedCandidates.map(c => c.id)))
-    }
+    const currentCandidates = activeTab === 'all' ? candidates : hotListCandidates
+    const allIds = currentCandidates.map(c => c.id)
+    setSelectedCandidates(
+      selectedCandidates.length === allIds.length ? [] : allIds
+    )
   }
 
   const handleViewCandidate = (candidateId) => {
     navigate(`/candidates/${candidateId}`)
   }
 
-  const handleDownloadResume = (candidate) => {
-    // Simulate resume download
-    const link = document.createElement('a')
-    link.href = candidate.resumeUrl
-    link.download = `${candidate.name.replace(' ', '-')}-resume.pdf`
-    link.click()
+  const handleEditCandidate = (candidateId) => {
+    navigate(`/candidates/${candidateId}/edit`)
   }
 
-  const formatSalary = (salary) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(salary)
+  const handleDeleteCandidate = async (candidateId) => {
+    if (window.confirm('Are you sure you want to delete this candidate?')) {
+      try {
+        // Delete candidate
+        setCandidates(prev => prev.filter(c => c.id !== candidateId))
+        setHotListCandidates(prev => prev.filter(c => c.id !== candidateId))
+      } catch (error) {
+        console.error('Failed to delete candidate:', error)
+      }
+    }
   }
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString()
+  const handleBulkAction = async (action) => {
+    if (selectedCandidates.length === 0) {
+      alert('Please select candidates first.')
+      return
+    }
+
+    switch (action) {
+      case 'delete':
+        if (window.confirm(`Are you sure you want to delete ${selectedCandidates.length} candidate(s)?`)) {
+          setCandidates(prev => prev.filter(c => !selectedCandidates.includes(c.id)))
+          setHotListCandidates(prev => prev.filter(c => !selectedCandidates.includes(c.id)))
+          setSelectedCandidates([])
+        }
+        break
+      case 'export':
+        // Export selected candidates
+        alert(`Exporting ${selectedCandidates.length} candidate(s)...`)
+        break
+      case 'tag':
+        // Add tags to selected candidates
+        alert(`Adding tags to ${selectedCandidates.length} candidate(s)...`)
+        break
+      default:
+        break
+    }
+    setShowBulkActions(false)
   }
 
-  // Pagination
-  const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage)
-  const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = startIndex + itemsPerPage
-  const paginatedCandidates = filteredCandidates.slice(startIndex, endIndex)
+  const filteredCandidates = () => {
+    const currentCandidates = activeTab === 'all' ? candidates : hotListCandidates
+    return currentCandidates.filter(candidate => {
+      const matchesSearch = searchTerm === '' || 
+        candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        candidate.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        candidate.title.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesFilter = filterBy === 'all' || 
+        (filterBy === 'available' && candidate.availability.includes('Available')) ||
+        (filterBy === 'high-match' && candidate.match_score >= 90) ||
+        (filterBy === 'recent' && new Date(candidate.last_active) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+      
+      return matchesSearch && matchesFilter
+    }).sort((a, b) => {
+      let aValue = a[sortBy]
+      let bValue = b[sortBy]
+      
+      if (sortBy === 'match_score' || sortBy === 'applications') {
+        aValue = Number(aValue)
+        bValue = Number(bValue)
+      }
+      
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+  }
 
-  const renderCandidateCard = (candidate) => (
-    <div key={candidate.id} className="candidate-card card hover:shadow-lg transition-all duration-200">
-      {/* Selection Checkbox */}
-      <div className="candidate-selection">
-        <input
-          type="checkbox"
-          checked={selectedCandidates.has(candidate.id)}
-          onChange={() => handleSelectCandidate(candidate.id)}
-          className="checkbox"
-        />
-      </div>
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'text-green-600 bg-green-100'
+      case 'bench': return 'text-orange-600 bg-orange-100'
+      case 'inactive': return 'text-gray-600 bg-gray-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
 
-      {/* Candidate Header */}
-      <div className="candidate-header">
-        <div className="candidate-avatar">
-          <img 
-            src={candidate.profilePicture} 
-            alt={candidate.name}
-            className="w-16 h-16 rounded-full border-2 border-gray-200"
-          />
-          {candidate.isVerified && (
-            <div className="verified-badge">
-              <CheckCircle size={16} className="text-green-500" />
-            </div>
-          )}
-        </div>
-        
-        <div className="candidate-info flex-1">
-          <div className="candidate-name-section">
-            <h3 className="text-xl font-semibold text-gray-900">{candidate.name}</h3>
-            {candidate.isTopTalent && (
-              <span className="top-talent-badge">
-                <Star size={12} />
-                Top Talent
-              </span>
-            )}
-          </div>
-          
-          <p className="text-gray-600 font-medium mb-2">{candidate.title}</p>
-          
-          <div className="candidate-details grid grid-cols-2 gap-2 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <MapPin size={14} />
-              {candidate.location}
-            </span>
-            <span className="flex items-center gap-1">
-              <Briefcase size={14} />
-              {candidate.experience} years exp
-            </span>
-            <span className="flex items-center gap-1">
-              <Mail size={14} />
-              {candidate.email}
-            </span>
-            <span className="flex items-center gap-1">
-              <Phone size={14} />
-              {candidate.phone}
-            </span>
-          </div>
-        </div>
+  const getMatchScoreColor = (score) => {
+    if (score >= 90) return 'text-green-600 bg-green-100'
+    if (score >= 80) return 'text-blue-600 bg-blue-100'
+    if (score >= 70) return 'text-yellow-600 bg-yellow-100'
+    return 'text-red-600 bg-red-100'
+  }
 
-        <div className="candidate-meta text-right">
-          <div className="match-score mb-2">
-            <span className="text-2xl font-bold text-blue-600">{candidate.matchScore}%</span>
-            <p className="text-xs text-gray-500">Match Score</p>
-          </div>
-          
-          <div className="candidate-stats text-xs text-gray-500">
-            <div>{candidate.applications} applications</div>
-            <div>{candidate.interviews} interviews</div>
-            <div>{candidate.offers} offers</div>
-          </div>
+  const getSourceIcon = (source) => {
+    switch (source) {
+      case 'manual': return <UserPlus className="w-4 h-4" />
+      case 'imported': return <FileUp className="w-4 h-4" />
+      case 'bulk_import': return <Database className="w-4 h-4" />
+      case 'applied': return <Send className="w-4 h-4" />
+      default: return <User className="w-4 h-4" />
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading candidates...</p>
         </div>
       </div>
-
-      {/* Skills */}
-      <div className="candidate-skills mb-4">
-        <div className="flex flex-wrap gap-2">
-          {candidate.skills.slice(0, 6).map((skill, index) => (
-            <span key={index} className="skill-tag badge bg-blue-100 text-blue-800 text-xs">
-              {skill}
-            </span>
-          ))}
-          {candidate.skills.length > 6 && (
-            <span className="text-sm text-gray-500">
-              +{candidate.skills.length - 6} more
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Salary & Availability */}
-      <div className="candidate-salary-availability mb-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-gray-500">Expected Salary:</span>
-            <p className="font-semibold text-gray-900">{formatSalary(candidate.expectedSalary)}</p>
-          </div>
-          <div>
-            <span className="text-gray-500">Availability:</span>
-            <p className="font-semibold text-gray-900">{candidate.availability}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Domain Expertise */}
-      <div className="candidate-domains mb-4">
-        <span className="text-sm text-gray-500">Domain Expertise:</span>
-        <div className="flex flex-wrap gap-1 mt-1">
-          {candidate.domain.map((domain, index) => (
-            <span key={index} className="badge bg-purple-100 text-purple-800 text-xs">
-              {domain}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      {/* Status & Rating */}
-      <div className="candidate-status-rating mb-4">
-        <div className="flex justify-between items-center">
-          <span className={`status-badge ${candidate.status.toLowerCase()}`}>
-            {candidate.status}
-          </span>
-          <div className="rating flex items-center gap-1">
-            <Star size={14} className="text-yellow-400 fill-current" />
-            <span className="text-sm font-medium">{candidate.rating}</span>
-            <span className="text-xs text-gray-500">({candidate.reviews} reviews)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="candidate-actions flex justify-between items-center">
-        <div className="action-buttons flex gap-2">
-          <button 
-            className="btn btn-secondary btn-sm flex items-center gap-2"
-            onClick={() => handleViewCandidate(candidate.id)}
-          >
-            <Eye size={14} />
-            View Profile
-          </button>
-          
-          <button 
-            className="btn btn-secondary btn-sm flex items-center gap-2"
-            onClick={() => handleDownloadResume(candidate)}
-          >
-            <Download size={14} />
-            Resume
-          </button>
-        </div>
-        
-        <div className="contact-buttons flex gap-2">
-          {candidate.linkedinUrl && (
-            <a 
-              href={candidate.linkedinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary btn-sm"
-            >
-              <Linkedin size={14} />
-            </a>
-          )}
-          
-          {candidate.githubUrl && (
-            <a 
-              href={candidate.githubUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-secondary btn-sm"
-            >
-              <Github size={14} />
-            </a>
-          )}
-          
-          <button className="btn btn-primary btn-sm">
-            <Mail size={14} />
-            Contact
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
-  const renderGridView = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {paginatedCandidates.map(candidate => renderCandidateCard(candidate))}
-    </div>
-  )
-
-  const renderListView = () => (
-    <div className="space-y-4">
-      {paginatedCandidates.map(candidate => renderCandidateCard(candidate))}
-    </div>
-  )
+    )
+  }
 
   return (
-    <div className="candidates-page">
-      <div className="page-header mb-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Candidate Database</h1>
-            <p className="text-gray-600">
-              Manage and discover talented candidates for your organization
-            </p>
-          </div>
-          
-          <div className="header-actions flex items-center gap-3">
-            <button
-              className="btn btn-secondary"
-              onClick={loadCandidates}
-              disabled={isLoading}
-            >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-            
-            <div className="btn-group">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Candidates</h1>
+              <p className="text-gray-600 mt-1">Manage your candidate database and hot list</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              {selectedCandidates.length > 0 && (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowBulkActions(!showBulkActions)}
+                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Bulk Actions ({selectedCandidates.length})
+                    <ChevronDown className="w-4 h-4 ml-2" />
+                  </button>
+                  {showBulkActions && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                      <button
+                        onClick={() => handleBulkAction('export')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export Selected
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction('tag')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center"
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Add Tags
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction('delete')}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Selected
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               <button
-                className="btn btn-primary"
-                onClick={() => navigate('/candidates/add')}
+                onClick={() => navigate('/bulk-resume-upload')}
+                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
               >
-                <UserPlus size={16} />
+                <Upload className="w-4 h-4 mr-2" />
+                Import Candidates
+              </button>
+              <button
+                onClick={() => setShowAddCandidateModal(true)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
                 Add Candidate
               </button>
-              
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate('/candidates/import')}
-              >
-                <FileUp size={16} />
-                Import
-              </button>
-              
-              <button
-                className="btn btn-primary"
-                onClick={() => navigate('/candidates/bulk-import')}
-              >
-                <Database size={16} />
-                Bulk Import
-              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Search and Filters */}
-      <div className="search-filters-section mb-6">
-        <div className="card p-4">
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <div className="search-box flex-1 min-w-64">
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => handleTabChange('all')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+                  activeTab === 'all'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                All Candidates ({candidates.length})
+              </button>
+              <button
+                onClick={() => handleTabChange('hotlist')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center ${
+                  activeTab === 'hotlist'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Flame className="w-4 h-4 mr-2" />
+                Hot List ({hotListCandidates.length})
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-4">
               <div className="relative">
-                <Search className="absolute left-3 top-3" size={16} color="#9ca3af" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search candidates by name, email, skills, or location..."
-                  className="input pl-10"
+                  placeholder="Search candidates..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-80"
                 />
               </div>
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
+              </button>
             </div>
             
-            <div className="filter-controls flex items-center gap-3">
-              <select
-                className="input-sm"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="relevance">Most Relevant</option>
-                <option value="name_asc">Name A-Z</option>
-                <option value="name_desc">Name Z-A</option>
-                <option value="experience_desc">Most Experienced</option>
-                <option value="experience_asc">Least Experienced</option>
-                <option value="salary_desc">Highest Salary</option>
-                <option value="salary_asc">Lowest Salary</option>
-                <option value="date_desc">Newest First</option>
-                <option value="date_asc">Oldest First</option>
-              </select>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm text-gray-600">Sort by:</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="name">Name</option>
+                  <option value="match_score">Match Score</option>
+                  <option value="last_active">Last Active</option>
+                  <option value="applications">Applications</option>
+                  <option value="added_date">Date Added</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-1 text-gray-400 hover:text-gray-600"
+                >
+                  {sortOrder === 'asc' ? <SortAsc className="w-4 h-4" /> : <SortDesc className="w-4 h-4" />}
+                </button>
+              </div>
               
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                <Filter size={16} />
-                {showFilters ? 'Hide' : 'Show'} Filters
-              </button>
+              <div className="flex items-center border border-gray-300 rounded-lg">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <Grid3X3 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Advanced Filters */}
           {showFilters && (
-            <div className="advanced-filters pt-4 border-t border-gray-200">
+            <div className="border-t border-gray-200 pt-4 mt-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <select
+                    value={filterBy}
+                    onChange={(e) => setFilterBy(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="all">All Candidates</option>
+                    <option value="available">Available</option>
+                    <option value="high-match">High Match (90%+)</option>
+                    <option value="recent">Recently Active</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Skills</label>
                   <input
                     type="text"
-                    placeholder="City, State, or Country"
-                    className="input"
-                    value={filters.location}
-                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Filter by skills..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Experience
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.experience}
-                    onChange={(e) => setFilters(prev => ({ ...prev, experience: e.target.value }))}
-                  >
-                    <option value="all">All Experience</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by location..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+                  <select className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Experience</option>
                     <option value="0-2">0-2 years</option>
                     <option value="3-5">3-5 years</option>
                     <option value="6-10">6-10 years</option>
-                    <option value="10">10+ years</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Skills
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="React, Python, etc."
-                    className="input"
-                    value={filters.skills}
-                    onChange={(e) => setFilters(prev => ({ ...prev, skills: e.target.value }))}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Education
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.education}
-                    onChange={(e) => setFilters(prev => ({ ...prev, education: e.target.value }))}
-                  >
-                    <option value="all">All Education</option>
-                    <option value="bachelor">Bachelor's</option>
-                    <option value="master">Master's</option>
-                    <option value="phd">PhD</option>
-                    <option value="bootcamp">Bootcamp</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Availability
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.availability}
-                    onChange={(e) => setFilters(prev => ({ ...prev, availability: e.target.value }))}
-                  >
-                    <option value="all">All Availability</option>
-                    <option value="Immediately">Immediately</option>
-                    <option value="2 weeks notice">2 weeks notice</option>
-                    <option value="1 month notice">1 month notice</option>
-                    <option value="3 weeks notice">3 weeks notice</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Salary Range
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.salaryRange}
-                    onChange={(e) => setFilters(prev => ({ ...prev, salaryRange: e.target.value }))}
-                  >
-                    <option value="all">Any Salary</option>
-                    <option value="50000-80000">$50k - $80k</option>
-                    <option value="80000-120000">$80k - $120k</option>
-                    <option value="120000-160000">$120k - $160k</option>
-                    <option value="160000">$160k+</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Domain
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.domain}
-                    onChange={(e) => setFilters(prev => ({ ...prev, domain: e.target.value }))}
-                  >
-                    <option value="all">All Domains</option>
-                    <option value="technology">Technology</option>
-                    <option value="healthcare">Healthcare</option>
-                    <option value="finance">Finance</option>
-                    <option value="e-commerce">E-commerce</option>
-                    <option value="education">Education</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    className="input"
-                    value={filters.status}
-                    onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Passive">Passive</option>
-                    <option value="Unavailable">Unavailable</option>
+                    <option value="10+">10+ years</option>
                   </select>
                 </div>
               </div>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Results Summary and View Toggle */}
-      <div className="results-header mb-6">
-        <div className="flex justify-between items-center">
-          <div className="results-summary flex items-center gap-4">
+        {/* Results Summary */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
             <p className="text-gray-600">
-              Showing {paginatedCandidates.length} of {filteredCandidates.length} candidate{filteredCandidates.length !== 1 ? 's' : ''}
-              {searchTerm && ` for "${searchTerm}"`}
+              Showing {filteredCandidates().length} of {activeTab === 'all' ? candidates.length : hotListCandidates.length} candidates
             </p>
-            
-            {selectedCandidates.size > 0 && (
-              <div className="selected-actions flex items-center gap-3">
-                <span className="text-sm text-gray-600">
-                  {selectedCandidates.size} selected
-                </span>
-                <button className="btn btn-secondary btn-sm">
-                  <Mail size={14} />
-                  Email Selected
-                </button>
-                <button className="btn btn-secondary btn-sm">
-                  <Download size={14} />
-                  Export Selected
-                </button>
+            {selectedCandidates.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={selectedCandidates.length === filteredCandidates().length}
+                  onChange={handleSelectAll}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600">Select All</span>
               </div>
             )}
           </div>
-          
-          <div className="view-controls flex items-center gap-4">
-            <div className="bulk-select">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={selectedCandidates.size === paginatedCandidates.length && paginatedCandidates.length > 0}
-                  onChange={handleSelectAll}
-                  className="checkbox"
-                />
-                Select All
-              </label>
+        </div>
+
+        {/* Candidates Grid/List */}
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredCandidates().map((candidate) => (
+              <div key={candidate.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedCandidates.includes(candidate.id)}
+                        onChange={() => handleCandidateSelect(candidate.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3"
+                      />
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-6 h-6 text-blue-600" />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleViewCandidate(candidate.id)}
+                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="View Details"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleEditCandidate(candidate.id)}
+                        className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCandidate(candidate.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{candidate.name}</h3>
+                    <p className="text-gray-600 text-sm mb-2">{candidate.title}</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(candidate.status)}`}>
+                        {candidate.status === 'bench' ? 'Hot List' : candidate.status}
+                      </span>
+                      {candidate.match_score && (
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMatchScoreColor(candidate.match_score)}`}>
+                          {candidate.match_score}% Match
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Mail className="w-3 h-3 mr-2" />
+                      {candidate.email}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="w-3 h-3 mr-2" />
+                      {candidate.location}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Briefcase className="w-3 h-3 mr-2" />
+                      {candidate.experience}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <div className="flex flex-wrap gap-1">
+                      {candidate.skills.slice(0, 3).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                      {candidate.skills.length > 3 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                          +{candidate.skills.length - 3} more
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {activeTab === 'all' && (
+                    <div className="grid grid-cols-4 gap-2 text-center text-xs text-gray-600 border-t border-gray-100 pt-3">
+                      <div>
+                        <div className="font-semibold text-gray-900">{candidate.applications}</div>
+                        <div>Applied</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{candidate.interviews}</div>
+                        <div>Interviews</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{candidate.offers}</div>
+                        <div>Offers</div>
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{candidate.rejections}</div>
+                        <div>Rejected</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'hotlist' && (
+                    <div className="border-t border-gray-100 pt-3">
+                      <div className="flex items-center justify-between text-xs text-gray-600 mb-2">
+                        <span>Bench Since: {new Date(candidate.bench_since).toLocaleDateString()}</span>
+                        <span className="font-semibold">{candidate.billable_rate}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span>Rating: {candidate.performance_rating}/5</span>
+                        <span className="text-orange-600 font-medium">Available</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectedCandidates.length === filteredCandidates().length && filteredCandidates().length > 0}
+                        onChange={handleSelectAll}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Candidate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Skills
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    {activeTab === 'all' && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Statistics
+                      </th>
+                    )}
+                    {activeTab === 'hotlist' && (
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Bench Info
+                      </th>
+                    )}
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCandidates().map((candidate) => (
+                    <tr key={candidate.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <input
+                          type="checkbox"
+                          checked={selectedCandidates.includes(candidate.id)}
+                          onChange={() => handleCandidateSelect(candidate.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                            <User className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{candidate.name}</div>
+                            <div className="text-sm text-gray-500">{candidate.title}</div>
+                            <div className="text-xs text-gray-400">{candidate.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {candidate.skills.slice(0, 3).map((skill, index) => (
+                            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                              {skill}
+                            </span>
+                          ))}
+                          {candidate.skills.length > 3 && (
+                            <span className="text-xs text-gray-500">+{candidate.skills.length - 3}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col space-y-1">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(candidate.status)}`}>
+                            {candidate.status === 'bench' ? 'Hot List' : candidate.status}
+                          </span>
+                          {candidate.match_score && (
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getMatchScoreColor(candidate.match_score)}`}>
+                              {candidate.match_score}% Match
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      {activeTab === 'all' && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>Applied: {candidate.applications}</div>
+                            <div>Interviews: {candidate.interviews}</div>
+                            <div>Offers: {candidate.offers}</div>
+                            <div>Rejected: {candidate.rejections}</div>
+                          </div>
+                        </td>
+                      )}
+                      {activeTab === 'hotlist' && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="text-xs">
+                            <div>Since: {new Date(candidate.bench_since).toLocaleDateString()}</div>
+                            <div>Rate: {candidate.billable_rate}</div>
+                            <div>Rating: {candidate.performance_rating}/5</div>
+                          </div>
+                        </td>
+                      )}
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleViewCandidate(candidate.id)}
+                            className="text-blue-600 hover:text-blue-900"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleEditCandidate(candidate.id)}
+                            className="text-green-600 hover:text-green-900"
+                            title="Edit"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCandidate(candidate.id)}
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {filteredCandidates().length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No candidates found</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm || filterBy !== 'all' 
+                ? 'Try adjusting your search or filters to find candidates.'
+                : 'Get started by adding your first candidate or importing from your existing database.'}
+            </p>
+            <div className="flex items-center justify-center space-x-4">
+              <button
+                onClick={() => setShowAddCandidateModal(true)}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Candidate
+              </button>
+              <button
+                onClick={() => navigate('/bulk-resume-upload')}
+                className="flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Import Candidates
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add Candidate Modal */}
+      {showAddCandidateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Add New Candidate</h3>
+              <button 
+                onClick={() => setShowAddCandidateModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
-            <div className="view-toggle flex items-center gap-2">
-              <span className="text-sm text-gray-600">View:</span>
-              <div className="btn-group">
-                <button
-                  className={`btn btn-sm ${viewMode === 'list' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setViewMode('list')}
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                  <input
+                    type="text"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                <input
+                  type="tel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Resume Upload</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer">
+                  <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
+                  <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX up to 10MB</p>
+                </div>
+              </div>
+              
+              <div className="flex space-x-4">
+                <button 
+                  onClick={() => setShowAddCandidateModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <List size={16} />
-                  List
+                  Cancel
                 </button>
-                <button
-                  className={`btn btn-sm ${viewMode === 'grid' ? 'btn-primary' : 'btn-secondary'}`}
-                  onClick={() => setViewMode('grid')}
+                <button 
+                  onClick={() => {
+                    setShowAddCandidateModal(false)
+                    alert('Candidate added successfully!')
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <Grid3X3 size={16} />
-                  Grid
+                  Add Candidate
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Candidates List/Grid */}
-      <div className="candidates-content">
-        {isLoading ? (
-          <div className="loading-state text-center py-12">
-            <RefreshCw size={48} className="mx-auto text-gray-400 mb-4 animate-spin" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading Candidates...</h3>
-            <p className="text-gray-600">Please wait while we fetch the candidate database</p>
-          </div>
-        ) : filteredCandidates.length === 0 ? (
-          <div className="empty-state text-center py-12">
-            <Users size={48} className="mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Candidates Found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || Object.values(filters).some(f => f !== 'all' && f !== '') 
-                ? 'Try adjusting your search criteria or filters'
-                : 'No candidates are currently in the database. Start by adding or importing candidates!'
-              }
-            </p>
-            {(searchTerm || Object.values(filters).some(f => f !== 'all' && f !== '')) ? (
-              <button 
-                className="btn btn-primary"
-                onClick={() => {
-                  setSearchTerm('')
-                  setFilters({
-                    location: '',
-                    experience: 'all',
-                    skills: '',
-                    education: 'all',
-                    availability: 'all',
-                    salaryRange: 'all',
-                    domain: 'all',
-                    status: 'all'
-                  })
-                }}
-              >
-                Clear All Filters
-              </button>
-            ) : (
-              <div className="flex gap-3 justify-center">
-                <button 
-                  className="btn btn-primary"
-                  onClick={() => navigate('/candidates/add')}
-                >
-                  <UserPlus size={16} />
-                  Add Candidate
-                </button>
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => navigate('/candidates/import')}
-                >
-                  <FileUp size={16} />
-                  Import Candidates
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            {viewMode === 'grid' ? renderGridView() : renderListView()}
-            
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="pagination-section mt-8">
-                <div className="flex justify-between items-center">
-                  <div className="pagination-info text-sm text-gray-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredCandidates.length)} of {filteredCandidates.length} candidates
-                  </div>
-                  
-                  <div className="pagination flex items-center gap-2">
-                    <button 
-                      className="pagination-btn"
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </button>
-                    
-                    <div className="pagination-pages flex gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const page = i + 1
-                        return (
-                          <button
-                            key={page}
-                            className={`pagination-page ${currentPage === page ? 'active' : ''}`}
-                            onClick={() => setCurrentPage(page)}
-                          >
-                            {page}
-                          </button>
-                        )
-                      })}
-                      
-                      {totalPages > 5 && (
-                        <>
-                          <span className="pagination-ellipsis">...</span>
-                          <button
-                            className={`pagination-page ${currentPage === totalPages ? 'active' : ''}`}
-                            onClick={() => setCurrentPage(totalPages)}
-                          >
-                            {totalPages}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                    
-                    <button 
-                      className="pagination-btn"
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <style jsx>{`
-        .candidates-page {
-          min-height: 100vh;
-          background: #f8fafc;
-          padding: 24px;
-        }
-
-        .card {
-          background: white;
-          border-radius: 12px;
-          padding: 24px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .candidate-card {
-          position: relative;
-          transition: all 0.2s ease;
-        }
-
-        .candidate-card:hover {
-          border-color: #8b5cf6;
-          box-shadow: 0 4px 12px rgba(139, 92, 246, 0.1);
-        }
-
-        .candidate-selection {
-          position: absolute;
-          top: 12px;
-          left: 12px;
-          z-index: 10;
-        }
-
-        .candidate-header {
-          display: flex;
-          gap: 16px;
-          margin-bottom: 16px;
-          padding-left: 32px;
-        }
-
-        .candidate-avatar {
-          position: relative;
-        }
-
-        .verified-badge {
-          position: absolute;
-          bottom: -2px;
-          right: -2px;
-          background: white;
-          border-radius: 50%;
-          padding: 2px;
-        }
-
-        .candidate-name-section {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 4px;
-        }
-
-        .top-talent-badge {
-          background: #f59e0b;
-          color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 10px;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 2px;
-          text-transform: uppercase;
-        }
-
-        .status-badge {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-          text-transform: uppercase;
-        }
-
-        .status-badge.active {
-          background: #dcfce7;
-          color: #166534;
-        }
-
-        .status-badge.passive {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .status-badge.unavailable {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .input {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
-          font-size: 14px;
-          transition: border-color 0.2s;
-        }
-
-        .input:focus {
-          outline: none;
-          border-color: #8b5cf6;
-          box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-        }
-
-        .input-sm {
-          padding: 6px 8px;
-          font-size: 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-        }
-
-        .btn {
-          padding: 10px 16px;
-          border-radius: 8px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s;
-          border: none;
-          text-decoration: none;
-        }
-
-        .btn-sm {
-          padding: 6px 12px;
-          font-size: 12px;
-        }
-
-        .btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .btn-primary {
-          background: #8b5cf6;
-          color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          background: #7c3aed;
-        }
-
-        .btn-secondary {
-          background: transparent;
-          color: #64748b;
-          border: 1px solid #d1d5db;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-          background: #f8fafc;
-        }
-
-        .btn-group {
-          display: flex;
-          border-radius: 8px;
-          overflow: hidden;
-          border: 1px solid #d1d5db;
-        }
-
-        .btn-group .btn {
-          border-radius: 0;
-          border: none;
-          border-right: 1px solid #d1d5db;
-        }
-
-        .btn-group .btn:last-child {
-          border-right: none;
-        }
-
-        .badge {
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 500;
-          text-transform: uppercase;
-        }
-
-        .skill-tag {
-          font-size: 10px;
-          padding: 2px 6px;
-          text-transform: none;
-        }
-
-        .checkbox {
-          width: 16px;
-          height: 16px;
-          border: 2px solid #d1d5db;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .checkbox:checked {
-          background: #8b5cf6;
-          border-color: #8b5cf6;
-        }
-
-        .pagination {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .pagination-btn {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          background: white;
-          color: #64748b;
-          cursor: pointer;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .pagination-btn:hover:not(:disabled) {
-          background: #f8fafc;
-        }
-
-        .pagination-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .pagination-page {
-          width: 40px;
-          height: 40px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          background: white;
-          color: #64748b;
-          cursor: pointer;
-          font-size: 14px;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .pagination-page:hover {
-          background: #f8fafc;
-        }
-
-        .pagination-page.active {
-          background: #8b5cf6;
-          color: white;
-          border-color: #8b5cf6;
-        }
-
-        .pagination-ellipsis {
-          padding: 8px 4px;
-          color: #64748b;
-        }
-
-        .animate-spin {
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-          .candidates-page {
-            padding: 16px;
-          }
-
-          .candidate-header {
-            flex-direction: column;
-            gap: 12px;
-          }
-
-          .candidate-meta {
-            text-align: left;
-          }
-
-          .candidate-actions {
-            flex-direction: column;
-            gap: 12px;
-            align-items: stretch;
-          }
-
-          .action-buttons,
-          .contact-buttons {
-            justify-content: stretch;
-          }
-
-          .action-buttons .btn,
-          .contact-buttons .btn {
-            flex: 1;
-            justify-content: center;
-          }
-
-          .grid {
-            grid-template-columns: 1fr;
-          }
-
-          .pagination {
-            flex-wrap: wrap;
-            justify-content: center;
-          }
-        }
-      `}</style>
+      )}
     </div>
   )
 }
