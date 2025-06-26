@@ -23,7 +23,8 @@ import {
   MessageSquare,
   TrendingUp,
   Target,
-  Zap
+  Zap,
+  Eye
 } from 'lucide-react'
 
 const JobDetailsPage = () => {

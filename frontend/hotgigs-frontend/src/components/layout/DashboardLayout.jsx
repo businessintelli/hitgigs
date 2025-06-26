@@ -29,7 +29,8 @@ import {
   Shield,
   Database,
   Activity,
-  MessageSquare
+  MessageSquare,
+  CheckSquare
 } from 'lucide-react'
 
 const DashboardLayout = ({ children }) => {
