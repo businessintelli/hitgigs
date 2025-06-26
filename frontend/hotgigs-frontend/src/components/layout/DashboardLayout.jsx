@@ -66,6 +66,16 @@ const DashboardLayout = ({ children }) => {
     ]
 
     let roleSpecificItems = []
+    let aiFeatures = []
+    let advancedFeatures = []
+
+    // AI-Powered Features (available to all roles)
+    aiFeatures = [
+      { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
+      { id: 'resume-analysis', label: 'Resume Analysis', icon: <FileText size={20} />, path: '/resume-analysis' },
+      { id: 'ai-interview', label: 'AI Interview', icon: <MessageSquare size={20} />, path: '/ai-interview' },
+      { id: 'ai-matching', label: 'AI Job Matching', icon: <Target size={20} />, path: '/ai-matching' }
+    ]
 
     switch (user?.user_type) {
       case 'candidate':
@@ -74,11 +84,14 @@ const DashboardLayout = ({ children }) => {
           { id: 'applications', label: 'My Applications', icon: <FileText size={20} />, path: '/my-applications' },
           { id: 'saved-jobs', label: 'Saved Jobs', icon: <Heart size={20} />, path: '/saved-jobs' },
           { id: 'interviews', label: 'Interviews', icon: <Calendar size={20} />, path: '/interviews' },
-          { id: 'offers', label: 'Job Offers', icon: <Award size={20} />, path: '/offers' },
-          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
-          { id: 'resume-analysis', label: 'Resume Analysis', icon: <FileText size={20} />, path: '/resume-analysis' },
-          { id: 'task-management', label: 'Tasks', icon: <Target size={20} />, path: '/task-management' },
-          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
+          { id: 'offers', label: 'Job Offers', icon: <Award size={20} />, path: '/offers' }
+        ]
+        
+        advancedFeatures = [
+          { id: 'task-management', label: 'Tasks', icon: <CheckSquare size={20} />, path: '/task-management' },
+          { id: 'career-insights', label: 'Career Insights', icon: <TrendingUp size={20} />, path: '/career-insights' },
+          { id: 'skill-assessment', label: 'Skill Assessment', icon: <Award size={20} />, path: '/skill-assessment' },
+          { id: 'privacy-settings', label: 'Privacy Controls', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 
@@ -88,12 +101,16 @@ const DashboardLayout = ({ children }) => {
           { id: 'my-jobs', label: 'My Jobs', icon: <Briefcase size={20} />, path: '/my-jobs' },
           { id: 'applications', label: 'Applications', icon: <FileText size={20} />, path: '/applications' },
           { id: 'candidates', label: 'Candidates', icon: <Users size={20} />, path: '/candidates' },
+          { id: 'company-profile', label: 'Company Profile', icon: <Building size={20} />, path: '/company-profile' }
+        ]
+        
+        advancedFeatures = [
           { id: 'bulk-upload', label: 'Bulk Resume Upload', icon: <Upload size={20} />, path: '/bulk-resume-upload' },
-          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
-          { id: 'task-management', label: 'Task Management', icon: <Target size={20} />, path: '/task-management' },
-          { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/analytics' },
-          { id: 'company-profile', label: 'Company Profile', icon: <Building size={20} />, path: '/company-profile' },
-          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
+          { id: 'task-management', label: 'Task Management', icon: <CheckSquare size={20} />, path: '/task-management' },
+          { id: 'analytics', label: 'Analytics & Reports', icon: <BarChart3 size={20} />, path: '/analytics' },
+          { id: 'team-management', label: 'Team Management', icon: <Users size={20} />, path: '/team-management' },
+          { id: 'data-export', label: 'Data Export', icon: <Download size={20} />, path: '/data-export' },
+          { id: 'privacy-settings', label: 'Privacy Controls', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 
@@ -103,13 +120,16 @@ const DashboardLayout = ({ children }) => {
           { id: 'candidates', label: 'Candidates', icon: <Users size={20} />, path: '/candidates' },
           { id: 'placements', label: 'Placements', icon: <Target size={20} />, path: '/placements' },
           { id: 'pipeline', label: 'Pipeline', icon: <TrendingUp size={20} />, path: '/pipeline' },
-          { id: 'earnings', label: 'Earnings', icon: <DollarSign size={20} />, path: '/earnings' },
+          { id: 'earnings', label: 'Earnings', icon: <DollarSign size={20} />, path: '/earnings' }
+        ]
+        
+        advancedFeatures = [
           { id: 'bulk-upload', label: 'Bulk Resume Upload', icon: <Upload size={20} />, path: '/bulk-resume-upload' },
-          { id: 'ai-assistant', label: 'AI Assistant', icon: <Zap size={20} />, path: '/ai-assistant' },
-          { id: 'resume-analysis', label: 'Resume Analysis', icon: <FileText size={20} />, path: '/resume-analysis' },
-          { id: 'task-management', label: 'Task Management', icon: <Target size={20} />, path: '/task-management' },
-          { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/analytics' },
-          { id: 'privacy-settings', label: 'Privacy', icon: <Shield size={20} />, path: '/privacy-settings' }
+          { id: 'task-management', label: 'Task Management', icon: <CheckSquare size={20} />, path: '/task-management' },
+          { id: 'analytics', label: 'Analytics & Reports', icon: <BarChart3 size={20} />, path: '/analytics' },
+          { id: 'client-portal', label: 'Client Portal', icon: <ExternalLink size={20} />, path: '/client-portal' },
+          { id: 'commission-tracker', label: 'Commission Tracker', icon: <DollarSign size={20} />, path: '/commission-tracker' },
+          { id: 'privacy-settings', label: 'Privacy Controls', icon: <Shield size={20} />, path: '/privacy-settings' }
         ]
         break
 
@@ -119,9 +139,15 @@ const DashboardLayout = ({ children }) => {
             { id: 'users', label: 'Users', icon: <Users size={20} />, path: '/admin/users' },
             { id: 'companies', label: 'Companies', icon: <Building size={20} />, path: '/admin/companies' },
             { id: 'jobs', label: 'Jobs', icon: <Briefcase size={20} />, path: '/admin/jobs' },
-            { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/admin/analytics' },
             { id: 'system', label: 'System', icon: <Database size={20} />, path: '/admin/system' },
             { id: 'logs', label: 'Logs', icon: <Activity size={20} />, path: '/admin/logs' }
+          ]
+          
+          advancedFeatures = [
+            { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, path: '/admin/analytics' },
+            { id: 'fraud-detection', label: 'Fraud Detection', icon: <AlertTriangle size={20} />, path: '/fraud-detection' },
+            { id: 'audit-trail', label: 'Audit Trail', icon: <FileSearch size={20} />, path: '/audit-trail' },
+            { id: 'data-export', label: 'Data Export', icon: <Download size={20} />, path: '/data-export' }
           ]
         }
         break
@@ -132,7 +158,17 @@ const DashboardLayout = ({ children }) => {
       { id: 'notifications', label: 'Notifications', icon: <Bell size={20} />, path: '/notifications' }
     ]
 
-    return [...commonItems, ...roleSpecificItems, ...settingsItems]
+    // Combine all items with section headers
+    const allItems = [
+      ...commonItems,
+      ...(roleSpecificItems.length > 0 ? [{ type: 'divider', label: 'Main Features' }, ...roleSpecificItems] : []),
+      ...(aiFeatures.length > 0 ? [{ type: 'divider', label: 'AI-Powered Tools' }, ...aiFeatures] : []),
+      ...(advancedFeatures.length > 0 ? [{ type: 'divider', label: 'Advanced Features' }, ...advancedFeatures] : []),
+      { type: 'divider', label: 'Account' },
+      ...settingsItems
+    ]
+
+    return allItems
   }
 
   const handleMenuClick = (item) => {

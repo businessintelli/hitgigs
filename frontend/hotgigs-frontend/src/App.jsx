@@ -28,6 +28,9 @@ import HelpCenterPage from './pages/HelpCenterPage'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage'
 import TermsOfServicePage from './pages/TermsOfServicePage'
 import AdminLogin from './pages/AdminLogin'
+import NotificationsPage from './pages/NotificationsPage'
+import SettingsPage from './pages/SettingsPage'
+import InterviewsPage from './pages/InterviewsPage'
 
 // Import new advanced feature pages
 import AIAssistantPage from './pages/AIAssistantPage'
@@ -194,6 +197,30 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <TaskManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/notifications" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <NotificationsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <SettingsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/interviews" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <InterviewsPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />

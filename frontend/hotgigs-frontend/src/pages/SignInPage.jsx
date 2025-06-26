@@ -51,8 +51,8 @@ const SignInPage = () => {
         setUser(data.user)
       }
 
-      // Redirect to home page
-      navigate('/')
+      // Redirect to dashboard page
+      navigate('/dashboard')
       
     } catch (err) {
       console.error('Login error:', err)
