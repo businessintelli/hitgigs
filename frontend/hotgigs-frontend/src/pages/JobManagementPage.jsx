@@ -39,7 +39,7 @@ import {
   ExternalLink, 
   FileUp, 
   Database, 
-  Template, 
+  Layout, 
   Wand2, 
   Sparkles, 
   Code, 
@@ -996,7 +996,7 @@ const JobManagementPage = () => {
                 className="btn btn-primary"
                 onClick={() => navigate('/jobs/create-from-template')}
               >
-                <Template size={16} />
+                <Layout size={16} />
                 From Template
               </button>
               
