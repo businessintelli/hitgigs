@@ -31,7 +31,8 @@ import {
   Activity,
   MessageSquare,
   CheckSquare,
-  Download
+  Download,
+  ExternalLink
 } from 'lucide-react'
 
 const DashboardLayout = ({ children }) => {
