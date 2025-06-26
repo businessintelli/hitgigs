@@ -43,7 +43,7 @@ import {
   Plus,
   Bot,
   FileUp,
-  Template,
+  FileTemplate,
   Edit,
   Trash2,
   Copy,
@@ -869,7 +869,7 @@ const JobsPage = () => {
                 className="w-full flex items-center p-4 text-left border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors"
               >
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                  <Template className="w-5 h-5 text-green-600" />
+                  <FileTemplate className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
                   <h4 className="font-semibold text-gray-900">Use Template</h4>
