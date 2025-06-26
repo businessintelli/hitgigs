@@ -58,6 +58,14 @@ import DataExportPage from './pages/DataExportPage'
 import MyJobsPage from './pages/MyJobsPage'
 import AnalyticsPage from './pages/AnalyticsPage'
 
+// Import freelance recruiter pages
+import ClientsPage from './pages/ClientsPage'
+import PlacementsPage from './pages/PlacementsPage'
+import PipelinePage from './pages/PipelinePage'
+import EarningsPage from './pages/EarningsPage'
+import ClientPortalPage from './pages/ClientPortalPage'
+import CommissionTrackerPage from './pages/CommissionTrackerPage'
+
 // Import components
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
@@ -288,6 +296,55 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <AnalyticsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              {/* Freelance Recruiter Routes */}
+              <Route path="/clients" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ClientsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/placements" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PlacementsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/pipeline" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <PipelinePage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/earnings" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <EarningsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/client-portal" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ClientPortalPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/commission-tracker" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CommissionTrackerPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
