@@ -31,6 +31,10 @@ import AdminLogin from './pages/AdminLogin'
 import NotificationsPage from './pages/NotificationsPage'
 import SettingsPage from './pages/SettingsPage'
 import InterviewsPage from './pages/InterviewsPage'
+import OffersPage from './pages/OffersPage'
+import CandidatesPage from './pages/CandidatesPage'
+import JobManagementPage from './pages/JobManagementPage'
+import ApplicantsPage from './pages/ApplicantsPage'
 
 // Import new advanced feature pages
 import AIAssistantPage from './pages/AIAssistantPage'
@@ -221,6 +225,38 @@ function App() {
                 <ProtectedRoute>
                   <DashboardLayout>
                     <InterviewsPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/offers" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <OffersPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/candidates" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <CandidatesPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/job-management" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <JobManagementPage />
+                  </DashboardLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/applicants" element={
+                <ProtectedRoute>
+                  <DashboardLayout>
+                    <ApplicantsPage />
                   </DashboardLayout>
                 </ProtectedRoute>
               } />
